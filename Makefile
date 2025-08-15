@@ -1,29 +1,22 @@
-NAME = ircserv
+NAME = irc
+
+SRC = main.cpp
+
+OBJ = main.o
+
 CXX = c++
-CXXFLAGS = -Wall -Wextra  -std=c++98 #-Werror
 
-SRCDIR = src
-OBJDIR = obj
-SOURCES = $(wildcard $(SRCDIR)/*.cpp)
-OBJECTS = $(SOURCES:$(SRCDIR)/%.cpp=$(OBJDIR)/%.o)
+CXXFLAGS = -Wextra -Werror -Wall -std=c++98
 
-all: $(NAME)
+$(NAME) : $(OBJ)
+	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJ)
 
-$(NAME): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(NAME)
+all : $(NAME)
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+clean :
+	rm -rf $(OBJ)
 
-$(OBJDIR):
-	mkdir -p $(OBJDIR)
+fclean : clean
+	rm -rf $(NAME)
 
-clean:
-	rm -rf $(OBJDIR)
-
-fclean: clean
-	rm -f $(NAME)
-
-re: fclean all
-
-.PHONY: all clean fclean re
+re : fclean all
