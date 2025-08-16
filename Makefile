@@ -1,8 +1,8 @@
 NAME = irc
 
-SRC = main.cpp
+SRC = main.cpp Server.cpp Client.cpp Channel.cpp
 
-OBJ = main.o
+OBJ = main.o Server.o Client.o Channel.o
 
 CXX = c++
 

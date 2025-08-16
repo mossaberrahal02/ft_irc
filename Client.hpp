@@ -1,0 +1,11 @@
+#pragma once
+#include <iostream>
+
+
+class Client
+{	
+public:
+	Client();
+	~Client();
+};
+
