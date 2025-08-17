@@ -9,9 +9,9 @@
 #include "Channel.hpp"
 
 
-typedef struct s_env
-{
-	Server					server;
-	std::vector <Client>	clients;
-	std::vector <Channel>	channels;
-} t_env;
+// typedef struct s_env
+// {
+// 	Server					server;
+// 	std::vector <Client>	clients;
+// 	std::vector <Channel>	channels;
+// } t_env;

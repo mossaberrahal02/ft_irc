@@ -2,10 +2,13 @@
 #include <cstring>
 
 
-Client::Client()
+Client::Client(int fd):
+fd_client(fd),
+password(""),
+authenticated(false)
 {
-	memset(&client_addr, 0, sizeof(client_addr));
-	client_addr_len = sizeof(client_addr);
+	// memset(&client_addr, 0, sizeof(client_addr));
+	// client_addr_len = sizeof(client_addr);
 }
 
 Client::~Client()
