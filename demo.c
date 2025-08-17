@@ -52,7 +52,7 @@ int main() {
     }
 
     std::cout << "Client connected" << std::endl;
-    std::cout << sizeof(buffer) << std::endl;
+    // std::cout << sizeof(buffer) << std::endl;
 
     // Read data from the client
     ssize_t bytes_read = read(client_fd, buffer, sizeof(buffer) - 1);

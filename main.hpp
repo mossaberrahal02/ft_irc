@@ -1,6 +1,9 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <cstdlib>
+#include <cstring>
+#include <cerrno>
 #include "Server.hpp"
 #include "Client.hpp"
 #include "Channel.hpp"
