@@ -6,7 +6,6 @@ int main(int ac, char** av)
 {
     Server  server(ac, av);
 
-    server.acceptConnection();
     server.loop();
     return 0;
 }

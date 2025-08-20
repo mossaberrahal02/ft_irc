@@ -7,9 +7,12 @@
 #include <cstdlib>
 #include <netinet/in.h>
 #include <poll.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
 #include "Client.hpp"
 #include "Channel.hpp"
 #define MAX_BUFF 1024
+
 
 class Server
 {
@@ -25,8 +28,8 @@ public:
 	struct pollfd				new_cli;
 	Server(int ac, char **av);
 	~Server();
+	Client*			getClient(int fd);
 	void			new_connection();
-	void			process_client_data();
+	void			process_client_data(int fd);
 	void			loop();
-
 };

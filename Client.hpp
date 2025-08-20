@@ -17,6 +17,7 @@ public:
 	bool 				authenticated;
 	std::string 		buffer;
 	std::string 		password;
+	std::string			ipAddr;
 	Client(int fd);
 	~Client();
 };
