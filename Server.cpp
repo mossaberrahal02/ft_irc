@@ -48,6 +48,10 @@ Server::Server(int ac, char **av)
         close(fd_server);
         exit(EXIT_FAILURE);
     }
+    new_cli.fd = fd_server;
+    new_cli.events = POLLIN;
+    new_cli.revents = 0;
+    fds.push_back(new_cli);
     std::cout << "Server started on port            : " << ntohs(addr_server.sin_port) << std::endl;
     std::cout << "Server started with the password  : " << passwd << std::endl;
 }
@@ -57,17 +61,53 @@ Server::~Server()
 	close(fd_server);
 }
 
-void			Server::acceptConnection()
+
+
+void        Server::loop()
 {
-	int		newFdClient;
-    
-	newFdClient = accept(fd_server, NULL, NULL);
-    if (newFdClient < 0)
+    std::cout << "Waiting to accept a connection...\n";
+    while(true)
     {
-        std::cerr << "Can't accepte the client" << std::endl;
+        if (poll(&fds[0], fds.size(), -1) < 0)
+        {
+            perror("poll");
+            exit(EXIT_FAILURE);
+        }
+        for (int i = 0; i < fds.size(); i++)
+        {
+            if (fds[i].revents & POLLIN)
+            {
+                if (fds[i].fd == fd_server)
+                    new_connection();
+                else
+                    process_client_data();
+            }
+        }
+    }
+}
+
+void        Server::new_connection()
+{
+    Client client(-1);
+    client.fd_client = accept(fd_server,
+        reinterpret_cast<struct sockaddr *>(&client.client_addr),
+        &client.client_addr_len);
+    if (client.fd_client < 0)
+    {
+        perror("can't accept new client");
         return;
     }
-    else
-        std::cout << "Client connected" << std::endl;
-	clients.push_back(Client(newFdClient));
+    
 }
+
+void        Server::process_client_data()
+{
+
+}
+
+// Reasons:Poll()
+// 1. Clean, modern interface
+// 2. No arbitrary limits like select()
+// 3. Portable across Unix systems
+// 4. Good enough performance for IRC
+// 5. Easier to understand than epoll()

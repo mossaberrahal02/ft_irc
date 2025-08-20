@@ -6,6 +6,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <netinet/in.h>
+#include <poll.h>
 #include "Client.hpp"
 #include "Channel.hpp"
 #define MAX_BUFF 1024
@@ -13,15 +14,19 @@
 class Server
 {
 public:
-	int						fd_server;
-	struct sockaddr_in		addr_server;
-	std::string				passwd;
-	char					buffer[MAX_BUFF];
-	ssize_t					buff_readed;
-	std::vector <Client>	clients;
-	std::vector <Channel>	channels;
+	int							fd_server;
+	struct sockaddr_in			addr_server;
+	std::string					passwd;
+	char						buffer[MAX_BUFF];
+	ssize_t						buff_readed;
+	std::vector <Client>		clients;
+	std::vector <Channel>		channels;
+	std::vector <struct pollfd>	fds;
+	struct pollfd				new_cli;
 	Server(int ac, char **av);
 	~Server();
-	void			acceptConnection();
+	void			new_connection();
+	void			process_client_data();
+	void			loop();
 
 };
