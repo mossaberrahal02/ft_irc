@@ -48,7 +48,7 @@ Server::Server(int ac, char **av)
     addr_server.sin_port = htons(std::atoi(av[1]));
     passwd = std::string(av[2]);
     if (bind(fd_server,
-        reinterpret_cast <struct sockaddr *>(&addr_server),
+        (sockaddr *)&addr_server,
         sizeof(addr_server)) < 0)
     {
         std::cerr << "can't bind connection" << std::endl;
@@ -78,14 +78,18 @@ Server::~Server()
 
 void        Server::loop()
 {
+    int pollValue;
     std::cout << "Waiting to accept a connection...\n";
     while(true)
     {
-        if (poll(&fds[0], fds.size(), -1) < 0)
+        pollValue = poll(&fds[0], fds.size(), -1);
+        if ( pollValue < 0)
         {
             std::cerr << "poll() Error" << std::endl;
             exit(EXIT_FAILURE);
         }
+        if (pollValue == 0)
+            continue;
         for (size_t i = 0; i < fds.size(); i++)
         {
             if (fds[i].revents & POLLIN)
@@ -105,88 +109,58 @@ void        Server::new_connection()
     client.fd_client = accept(fd_server,
         reinterpret_cast<struct sockaddr *>(&client.client_addr),
         &client.client_addr_len);
-        if (client.fd_client < 0)
-        {
-            std::cerr << "can't accept new client" << std::endl;
-            return;
-        }
-        if (fcntl(client.fd_client, F_SETFL, O_NONBLOCK) == -1)
-        {
-            std::cerr << "fcntl Error" << std::endl;
-            return;
-        }
-        new_cli.fd = client.fd_client;
-        new_cli.events = POLLIN;
-        new_cli.revents = 0;
-        client.ipAddr = std::string(inet_ntoa(client.client_addr.sin_addr));
-        clients.push_back(client);
-        fds.push_back(new_cli);
-        std::cout << "Client <" << client.fd_client << "> Connected" << std::endl;
-        std::string welcome = "Welcome to the server!\nPlease Register yourself on our server!\r\n";
-        send(client.fd_client, welcome.c_str(), welcome.size(), 0);
+    if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
+    {
+        std::cerr << "can't set server non blocking" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if (client.fd_client < 0)
+    {
+        std::cerr << "can't accept new client" << std::endl;
+        return;
+    }
+    if (fcntl(client.fd_client, F_SETFL, O_NONBLOCK) == -1)
+    {
+        std::cerr << "fcntl Error" << std::endl;
+        return;
+    }
+    new_cli.fd = client.fd_client;
+    new_cli.events = POLLIN;
+    new_cli.revents = 0;
+    client.ipAddr = std::string(inet_ntoa(client.client_addr.sin_addr));
+    clients.push_back(client);
+    fds.push_back(new_cli);
+    std::cout << "Client <" << client.fd_client << "> Connected" << std::endl;
+    std::string welcome = "Welcome to the server!\nPlease Register yourself on our server!\r\n";
+    send(client.fd_client, welcome.c_str(), welcome.size(), 0);
 }
 
 
-void Server::process_client_data(int fd)
+void        Server::process_client_data(int fd)
 {
     Client *client = getClient(fd);
-    memset(buffer, 0, sizeof(buffer));
-    buff_readed = recv(fd, buffer, MAX_BUFF - 1, MSG_DONTWAIT);
-    
-    if (buff_readed < 0)
-    {
-        // Without checking errno, treat any error as a reason to disconnect
-        // remove_client(fd);
+    if (client == NULL)
         return;
-    }
-    
-    if (buff_readed == 0)
+    memset(buffer, 0, sizeof(buffer));
+    buff_readed = recv(fd, buffer, MAX_BUFF - 1, 0);
+    if (buff_readed <= 0) //client disconneced ...
     {
         std::cout << "Client " << client->userName << " disconnected." << std::endl;
-        // remove_client(fd);
+        // removeFromChannel(fd);
+        // fds.erase(client);
+        // clients.erase(client)
         return;
     }
-    
-    buffer[buff_readed] = '\0';
     std::cout << "client " << client->fd_client << " write : " << buffer << std::endl;
 }
 
-// void        Server::process_client_data(int fd)
-// {
-//     Client *client = getClient(fd);
-//     memset(buffer, 0, sizeof(buffer));
-//     buff_readed = recv(fd, buffer, MAX_BUFF - 1, MSG_DONTWAIT);
-//     if (buff_readed <= 0) //client disconneced ...
-//     {
-//         std::cout << "Client " << client->userName << " disconnected." << std::endl;
-//         // removeFromChannel(fd);
-//         // fds.erase(client);
-//         // clients.erase(client)
-//         return;
-//     }
-//     std::cout << "client " << client->fd_client << " write : " << buffer << std::endl;
-// }
 
 Client*     Server::getClient(int fd)
 {
-    for (size_t i = 0; clients.size(); i ++)
+    for (size_t i = 0; i < clients.size(); i++)
     {
         if (clients[i].fd_client == fd)
         return &clients[i];
     }
     return NULL;
 }
-
-// Reasons:Poll()
-// 1. Clean, modern interface
-// 2. No arbitrary limits like select()
-// 3. Portable across Unix systems
-// 4. Good enough performance for IRC
-// 5. Easier to understand than epoll()
-
-
-// std::cout << "fds[i].fd               : " << fds[i].fd << std::endl;
-// std::cout << "fds[i].events           : " << fds[i].events << std::endl;
-// std::cout << "fds[i].revents          : " << fds[i].revents << std::endl;
-// std::cout << "POLLIN                  : " << fds[i].revents << std::endl;
-// std::cout << "fds[i].revents & POLLIN : " << fds[i].revents << std::endl;

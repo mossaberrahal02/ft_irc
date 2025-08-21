@@ -14,6 +14,8 @@
 #define MAX_BUFF 1024
 
 
+#include <cerrno>
+
 class Server
 {
 public:

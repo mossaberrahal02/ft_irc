@@ -12,5 +12,5 @@ password("")
 
 Client::~Client()
 {
-	close(fd_client);
+	
 }
