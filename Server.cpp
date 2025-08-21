@@ -138,29 +138,72 @@ void        Server::new_connection()
 
 void        Server::process_client_data(int fd)
 {
-    Client *client = getClient(fd);
-    if (client == NULL)
-        return;
+    int         cli_indx = getClient(fd);
+    size_t      pos;
+
     memset(buffer, 0, sizeof(buffer));
     buff_readed = recv(fd, buffer, MAX_BUFF - 1, 0);
-    if (buff_readed <= 0) //client disconneced ...
+    if (buff_readed <= 0)
     {
-        std::cout << "Client " << client->userName << " disconnected." << std::endl;
+        std::cout << "Client <" << clients[cli_indx].userName << "> disconnected." << std::endl;
         // removeFromChannel(fd);
-        // fds.erase(client);
-        // clients.erase(client)
+        fds.erase(fds.begin() + cli_indx + 1);
+        clients.erase(clients.begin() + cli_indx);
         return;
     }
-    std::cout << "client " << client->fd_client << " write : " << buffer << std::endl;
+    clients[cli_indx].buffer.append(buffer, buff_readed);
+    while ((pos = clients[cli_indx].buffer.find("\r\n")) != std::string::npos)
+    {
+        process_command(cli_indx, clients[cli_indx].buffer.substr(0, pos));
+        clients[cli_indx].buffer.erase(0, pos + 2);
+    }
 }
 
+std::string     get_word(std::string& line)
+{
+    int         pos;
+    std::string cmd;
+    if ((pos = line.find_first_of(" \t")) == std::string::npos)
+        return std::string(line);
+    cmd = line.substr(0, pos);
+    line.erase(0, pos + 1);
+}
 
-Client*     Server::getClient(int fd)
+bool isValidcmd(std::string cmd)
+{
+    return 1;
+}
+
+void    Server::process_command(int index_client, std::string line)
+{
+    std::string cmd;
+    if (line.empty())
+        return;
+    cmd = get_word(line);
+    if (isValidcmd(cmd) == 0)
+    {
+
+        return;
+    }
+}
+
+int     Server::getClient(int fd)
 {
     for (size_t i = 0; i < clients.size(); i++)
     {
         if (clients[i].fd_client == fd)
-        return &clients[i];
+        return i;
     }
-    return NULL;
+    return -1;
 }
+
+
+// USER <username> <hostname> <servername> <realname>
+
+// <username> → the user’s login/username (often arbitrary, not a real OS login).
+
+// <hostname> → the client’s host (usually ignored by the server, since it can resolve it itself).
+
+// <servername> → the server name (also usually ignored).
+
+// <realname> → a "gecos"/display field describing the user (can contain spaces if prefixed with :).

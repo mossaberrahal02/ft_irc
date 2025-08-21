@@ -30,8 +30,9 @@ public:
 	struct pollfd				new_cli;
 	Server(int ac, char **av);
 	~Server();
-	Client*			getClient(int fd);
+	int 			getClient(int fd);
 	void			new_connection();
+	void			process_command(int index_client,std::string line);
 	void			process_client_data(int fd);
 	void			loop();
 };
