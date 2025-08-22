@@ -1,10 +1,13 @@
 #include "server.hpp"
 #include "Client.hpp"
+#include <cstdlib>
 #include <iostream>
+#include <string>
 #include <sys/socket.h>
 #include <cstring>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <vector>
 
 Server::Server() {
     std::cout << "Server initialized." << std::endl;
@@ -107,12 +110,41 @@ Client * Server::getClientBySocket(int clientSocket)
     }
     return NULL;
 }
+std::vector<std::string> splitBufferContent(const std::string& buffer)
+{
+    std::vector<std::string> result;
+    size_t start = 0;
+    size_t end = buffer.find("\r\n");
+
+    while (end != std::string::npos) {
+        result.push_back(buffer.substr(start, end - start));
+        start = end + 2; // Move past the "\r\n"
+        end = buffer.find("\r\n", start);
+    }
+    if (start < buffer.length()) {
+        result.push_back(buffer.substr(start));
+    }
+
+    return result;
+}
+
+void exec_cmd(const std::string &cmd, int clientSocket)
+{
+    if(cmd.empty())
+        return;
+    std::cout << "Executing command from client " << clientSocket << ": " << cmd << std::endl;
+    if (cmd == "PING" || cmd == "ping")
+    {
+        std::cout << "PINGping" << std::endl;
+    }
+}
 
 void Server::receiveNewData(int clientSocket)
 {
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
     Client *client = getClientBySocket(clientSocket);
+    std::vector<std::string> splitedRequest;
     if (!client)
         {std::cerr << "Client not found." << std::endl;return;}
     int bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
@@ -126,7 +158,15 @@ void Server::receiveNewData(int clientSocket)
         std::cout << "Client disconnected." << std::endl;
         return;
     }
-    std::cout << "Received data from client: " << buffer << std::endl;
+    else {
+        client->setBuffer(buffer);
+        if(client->getBuffer().find_first_of("\r\n") == std::string::npos)
+			return;
+        splitedRequest = splitBufferContent(client->getBuffer());
+        for (unsigned int i = 0; i < splitedRequest.size(); i++)
+            exec_cmd(splitedRequest[i], clientSocket);
+        // client->processBuffer();
+    }
 }
 
 void Server::coreServerLoop()
