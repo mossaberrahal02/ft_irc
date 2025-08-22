@@ -31,10 +31,12 @@ class Server {
         int getServerSocket() const;
         std::string getPassword() const;
         std::vector<struct pollfd> &getPollFds();
+        Client * getClientBySocket(int clientSocket);
 
         void initServerSocket();
         void stop();
         void Error(const std::string& message);
         void addNewClientToPollFds(int clientSocket);
         void coreServerLoop();
+        void receiveNewData(int clientSocket);
 };

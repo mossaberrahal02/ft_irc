@@ -1,8 +1,10 @@
 #include "server.hpp"
+#include "Client.hpp"
 #include <iostream>
 #include <sys/socket.h>
 #include <cstring>
 #include <arpa/inet.h>
+#include <signal.h>
 
 Server::Server() {
     std::cout << "Server initialized." << std::endl;
@@ -94,6 +96,39 @@ std::vector<struct pollfd> &Server::getPollFds()
     return poll_fds;
 }
 
+Client * Server::getClientBySocket(int clientSocket)
+{
+    for (unsigned int i = 0; i < clients.size(); i++)
+    {
+        if (clients[i].getClientSocket() == clientSocket)
+        {
+            return &clients[i];
+        }
+    }
+    return NULL;
+}
+
+void Server::receiveNewData(int clientSocket)
+{
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    Client *client = getClientBySocket(clientSocket);
+    if (!client)
+        {std::cerr << "Client not found." << std::endl;return;}
+    int bytesRead = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+    if (bytesRead < 0)
+    {
+        std::cerr << "Error reading from client socket." << std::endl;
+        return;
+    }
+    else if (bytesRead == 0)
+    {
+        std::cout << "Client disconnected." << std::endl;
+        return;
+    }
+    std::cout << "Received data from client: " << buffer << std::endl;
+}
+
 void Server::coreServerLoop()
 {
     std::cout << "Core server loop started." << std::endl;
@@ -102,27 +137,35 @@ void Server::coreServerLoop()
     {
         if(poll(getPollFds().data(), getPollFds().size(), -1) < 0) 
             {Error("Poll failed.");exit(EXIT_FAILURE);}
+        std::cout << "Poll returned, checking fds..." << std::endl;
         for (unsigned int i = 0; i < getPollFds().size(); i++)
         {
             if (getPollFds()[i].revents & POLLIN)
             {
-                Client tempClient;
-                memset(&clientAddress, 0, sizeof(clientAddress));
-                socklen_t len = sizeof(clientAddress);
-                int incofd = accept(serverSocket, (sockaddr *)&(clientAddress), &len);
-                if (incofd == -1)
-                    {std::cout << "accept() failed" << std::endl; return;}
+                if (getPollFds()[i].fd == serverSocket)
+                {
+                    Client tempClient;
+                    memset(&clientAddress, 0, sizeof(clientAddress));
+                    socklen_t len = sizeof(clientAddress);
+                    int incofd = accept(serverSocket, (sockaddr *)&(clientAddress), &len);
+                    if (incofd == -1)
+                        {std::cout << "accept() failed" << std::endl; return;}
 
-                new_cli.fd = incofd;
-                new_cli.events = POLLIN;
-                new_cli.revents = 0;
+                    new_cli.fd = incofd;
+                    new_cli.events = POLLIN;
+                    new_cli.revents = 0;
 
-                tempClient.setClientSocket(incofd);
-                tempClient.setIpAddress(inet_ntoa(clientAddress.sin_addr));
+                    tempClient.setClientSocket(incofd);
+                    tempClient.setIpAddress(inet_ntoa(clientAddress.sin_addr));
 
-                clients.push_back(tempClient);
-                poll_fds.push_back(new_cli);
-                std::cout << "New client connected: " << tempClient.getIpAddress() << " on socket " << incofd << std::endl;
+                    clients.push_back(tempClient);
+                    poll_fds.push_back(new_cli);
+                    std::cout << "New client connected: " << tempClient.getIpAddress() << " on socket " << incofd << std::endl;
+                }
+                else 
+                {
+                    receiveNewData(getPollFds()[i].fd);
+                }
             }
         }
     }
