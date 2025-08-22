@@ -6,6 +6,7 @@
 class Client {
     private:
         int clientSocket;
+        std::string buffer;
         struct sockaddr_in clientAddress;
         std::string clientNickName;
         bool isOperator;
@@ -38,4 +39,6 @@ class Client {
         std::string getIpAddress() const;
         void setClientUserName(const std::string& user);
         std::string getClientUserName() const;
+        void setBuffer(const std::string& data);
+        std::string getBuffer() const;
 };

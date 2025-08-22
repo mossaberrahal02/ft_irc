@@ -104,3 +104,10 @@ void Client::setClientUserName(const std::string& user) {
 std::string Client::getClientUserName() const {
     return clientUserName;
 }
+void Client::setBuffer(const std::string& data) {
+    buffer += data;
+}
+
+std::string Client::getBuffer() const {
+    return buffer;
+}
