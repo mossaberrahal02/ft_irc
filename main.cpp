@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
         {std::cerr << "Invalid port number: " << argv[1] << std::endl;return 1;}
     Server server(atoi(argv[1]), argv[2]);
     server.initServerSocket();
-    std::cout << "server " << server.getServerSocket() << " is running on port " << server.getPort() << " with password " << server.getPassword() << std::endl;
+    // std::cout << "server " << server.getServerSocket() << " is running on port " << server.getPort() << " with password " << server.getPassword() << std::endl;
     server.coreServerLoop();
     return 0;
 }
