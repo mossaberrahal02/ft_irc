@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <sstream>
 #include <unistd.h>
 #include <cstdio>
 #include <cstring>
@@ -30,6 +31,16 @@ public:
 	struct pollfd				new_cli;
 	Server(int ac, char **av);
 	~Server();
+	void		    send_log(int index_client, std::string log);
+	void    		pass(int index_client, std::vector <std::string> cmd_args);
+	void    		nick(int index_client, std::vector <std::string> cmd_args);
+	void    		user(int index_client, std::vector <std::string> cmd_args);
+	void    		privmsg(int index_client, std::vector <std::string> cmd_args);
+	void    		join(int index_client, std::vector <std::string> cmd_args);
+	void    		invite(int index_client, std::vector <std::string> cmd_args);
+	void    		kick(int index_client, std::vector <std::string> cmd_args);
+	void    		normal_commands(int index_client, std::vector <std::string> cmd_args);
+	void    		authenticate(int index_client, std::vector <std::string> cmd_args);
 	int 			getClient(int fd);
 	void			new_connection();
 	void			process_command(int index_client,std::string line);

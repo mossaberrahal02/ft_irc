@@ -109,19 +109,15 @@ void        Server::new_connection()
     client.fd_client = accept(fd_server,
         reinterpret_cast<struct sockaddr *>(&client.client_addr),
         &client.client_addr_len);
-    if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
-    {
-        std::cerr << "can't set server non blocking" << std::endl;
-        exit(EXIT_FAILURE);
-    }
     if (client.fd_client < 0)
     {
         std::cerr << "can't accept new client" << std::endl;
         return;
     }
-    if (fcntl(client.fd_client, F_SETFL, O_NONBLOCK) == -1)
+    if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
     {
-        std::cerr << "fcntl Error" << std::endl;
+        std::cerr << "can't set client non blocking" << std::endl;
+        close(client.fd_client);
         return;
     }
     new_cli.fd = client.fd_client;
@@ -152,38 +148,139 @@ void        Server::process_client_data(int fd)
         return;
     }
     clients[cli_indx].buffer.append(buffer, buff_readed);
-    while ((pos = clients[cli_indx].buffer.find("\r\n")) != std::string::npos)
+    while ((pos = clients[cli_indx].buffer.find_first_of("\r\n")) != std::string::npos)
     {
         process_command(cli_indx, clients[cli_indx].buffer.substr(0, pos));
         clients[cli_indx].buffer.erase(0, pos + 2);
     }
 }
 
-std::string     get_word(std::string& line)
+std::vector<std::string>     get_args(std::string& line)
 {
-    int         pos;
-    std::string cmd;
-    if ((pos = line.find_first_of(" \t")) == std::string::npos)
-        return std::string(line);
-    cmd = line.substr(0, pos);
-    line.erase(0, pos + 1);
+	std::vector<std::string> vec;
+	std::istringstream stm(line);
+	std::string word;
+	while(stm >> word)
+		vec.push_back(word);
+	return vec;
 }
 
-bool isValidcmd(std::string cmd)
+void    Server::send_log(int index_client, std::string log)
 {
-    return 1;
+	send(clients[index_client].fd_client, log.c_str(), log.size(), 0);
+}
+
+void    Server::pass(int index_client, std::vector <std::string> cmd_args)
+{
+    if (!clients[index_client].password.empty())
+    {
+        send_log(index_client, "PASS : you already enter the password\n");
+        return;
+    }
+    if (cmd_args.size() != 2)
+    {
+        send_log(index_client, "PASS : invalide args : <PASS> <password>\n");
+        return;
+    }
+    if (passwd != cmd_args[1])
+    {
+        send_log(index_client, "PASS : incorrect password\n");
+        return;
+    }
+    clients[index_client].password = cmd_args[1];
+    send_log(index_client, "PASS : password success\n");
+}
+
+
+void    Server::nick(int index_client, std::vector <std::string> cmd_args)
+{
+    (void)cmd_args;
+    send_log(index_client, "inside NICK");
+}
+
+void    Server::user(int index_client, std::vector <std::string> cmd_args)
+{
+    (void)cmd_args;
+	send_log(index_client, "inside USER");
+}
+
+void    Server::privmsg(int index_client, std::vector <std::string> cmd_args)
+{
+    (void)cmd_args;
+    send_log(index_client, "inside PRIVMSG");
+}
+
+void    Server::join(int index_client, std::vector <std::string> cmd_args)
+{
+    (void)cmd_args;
+    send_log(index_client, "inside JOIN");
+}
+
+void    Server::invite(int index_client, std::vector <std::string> cmd_args)
+{
+    (void)cmd_args;
+    send_log(index_client, "inside INVITE");
+}
+
+void    Server::kick(int index_client, std::vector <std::string> cmd_args)
+{
+    (void)cmd_args;
+    send_log(index_client, "inside KICK");
+}
+
+void    Server::authenticate(int index_client, std::vector <std::string> cmd_args)
+{
+    if (clients[index_client].password.empty() && cmd_args[0] != "PASS")
+    {
+        send_log(index_client, "Please Enter the server Password First : PASS <passwd>\n");
+        return;
+    }
+    else if (cmd_args[0] == "PASS")
+        pass(index_client, cmd_args);
+    else if (cmd_args[0] == "NICK")
+        nick(index_client, cmd_args);
+    else if (cmd_args[0] == "USER")
+        user(index_client, cmd_args);
+    else
+    {
+        send_log(index_client, "Unknown command during authentication.Please complete your Registration\n");
+        return;
+    }
+    if (!clients[index_client].password.empty() 
+        && !clients[index_client].nickName.empty()
+        && !clients[index_client].userName.empty()
+        && !clients[index_client].authenticated)
+    {
+        clients[index_client].authenticated = 1;
+        send_log(index_client, "Registration successful. You are now authenticated!\n");
+    }
+}
+
+
+void    Server::normal_commands(int index_client, std::vector <std::string> cmd_args)
+{
+    if (cmd_args[0] == "PRVIMSG")
+        return privmsg(index_client, cmd_args);
+    if (cmd_args[0] == "JOIN")
+        return join(index_client, cmd_args);
+    if (cmd_args[0] == "INVITE")
+        return invite(index_client, cmd_args);
+    if (cmd_args[0] == "KICK")
+        return kick(index_client, cmd_args);
 }
 
 void    Server::process_command(int index_client, std::string line)
 {
-    std::string cmd;
+    std::vector<std::string> cmd_args = get_args(line);
     if (line.empty())
-        return;
-    cmd = get_word(line);
-    if (isValidcmd(cmd) == 0)
+    return;
+    if (clients[index_client].authenticated == false)
     {
-
-        return;
+        authenticate(index_client, cmd_args);
+    }
+    else
+    {
+        normal_commands(index_client, cmd_args);
     }
 }
 
@@ -196,6 +293,8 @@ int     Server::getClient(int fd)
     }
     return -1;
 }
+
+
 
 
 // USER <username> <hostname> <servername> <realname>

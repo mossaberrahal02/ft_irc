@@ -4,6 +4,7 @@
 
 Client::Client(int fd):
 fd_client(fd),
+authenticated(false),
 password("")
 {
 	memset(&client_addr, 0, sizeof(client_addr));
