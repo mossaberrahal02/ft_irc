@@ -3,11 +3,12 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <cstring>
 #include <arpa/inet.h>
-#include <signal.h>
 #include <vector>
+#include <sstream>
 
 Server::Server() {
     std::cout << "Server initialized." << std::endl;
@@ -17,6 +18,10 @@ Server::Server(int port) : port(port) {
 }
 Server::Server(int port, const std::string& password) : port(port), password(password) 
 {
+    if (password.empty()) {
+        std::cerr << "Error: Password cannot be empty." << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
 }
 Server::Server(const Server& other) : port(other.port), password(other.password) {
 }
@@ -110,32 +115,44 @@ Client * Server::getClientBySocket(int clientSocket)
     }
     return NULL;
 }
-std::vector<std::string> splitBufferContent(const std::string& buffer)
+// std::vector<std::string> splitBufferContent(const std::string& buffer)
+// {
+//     std::vector<std::string> result;
+// 	std::istringstream stm(buffer);
+// 	std::string line;
+// 	while(std::getline(stm, line))
+// 	{
+// 		size_t pos = line.find_first_of("\r\n");
+// 		if(pos != std::string::npos)
+// 			line = line.substr(0, pos);
+// 		result.push_back(line);
+// 	}
+
+//     return result;
+// }
+
+//    PASS 
+
+std::vector<std::string> Server::splitBufferContent(const std::string &str)
 {
     std::vector<std::string> result;
-    size_t start = 0;
-    size_t end = buffer.find("\r\n");
+    std::string line;
+    std::istringstream stm(str);
 
-    while (end != std::string::npos) {
-        result.push_back(buffer.substr(start, end - start));
-        start = end + 2; // Move past the "\r\n"
-        end = buffer.find("\r\n", start);
-    }
-    if (start < buffer.length()) {
-        result.push_back(buffer.substr(start));
-    }
-
+    while (std::getline(stm, line))
+        result.push_back(line);
     return result;
 }
+
 
 void exec_cmd(const std::string &cmd, int clientSocket)
 {
     if(cmd.empty())
         return;
-    std::cout << "Executing command from client " << clientSocket << ": " << cmd << std::endl;
+    std::cout << "Executing command from client " << clientSocket << ": {" << cmd << "}" << std::endl;
     if (cmd == "PING" || cmd == "ping")
     {
-        std::cout << "PINGping" << std::endl;
+        std::cout << "PING || ping" << std::endl;
     }
 }
 
@@ -164,14 +181,17 @@ void Server::receiveNewData(int clientSocket)
 			return;
         splitedRequest = splitBufferContent(client->getBuffer());
         for (unsigned int i = 0; i < splitedRequest.size(); i++)
-            exec_cmd(splitedRequest[i], clientSocket);
+        {
+            // exec_cmd(splitedRequest[i], clientSocket);
+            std::cout << "Received command from client i = " << i << " clientSocket = " << clientSocket << ": {" << splitedRequest[i] << "}" << std::endl;
+        }
         // client->processBuffer();
     }
 }
 
 void Server::coreServerLoop()
 {
-    std::cout << "Core server loop started." << std::endl;
+    // std::cout << "Core server loop started." << std::endl;
     std::cout << "Waiting for client connections..." << std::endl;
     while (1)
     {

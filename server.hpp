@@ -39,4 +39,6 @@ class Server {
         void addNewClientToPollFds(int clientSocket);
         void coreServerLoop();
         void receiveNewData(int clientSocket);
+
+        std::vector<std::string> splitBufferContent(const std::string &str);
 };
