@@ -31,6 +31,7 @@ public:
 	struct pollfd				new_cli;
 	Server(int ac, char **av);
 	~Server();
+	void    		server_log(int index_client, std::string log);
 	void		    send_log(int index_client, std::string log);
 	void    		pass(int index_client, std::vector <std::string> cmd_args);
 	void    		nick(int index_client, std::vector <std::string> cmd_args);

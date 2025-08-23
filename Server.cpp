@@ -12,6 +12,11 @@ void valid_args(char **av)
     {
         std::cerr << "Please Enter a Valid Port or default <6667>" << std::endl;
         exit(EXIT_FAILURE);
+    } 
+    if (std::strlen(av[2]) < 4)
+    {
+        std::cerr << "Please Enter a Valid password, more than 4 characters" << std::endl;
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -135,23 +140,25 @@ void        Server::new_connection()
 void        Server::process_client_data(int fd)
 {
     int         cli_indx = getClient(fd);
-    size_t      pos;
+    size_t      pos = 0;
 
     memset(buffer, 0, sizeof(buffer));
     buff_readed = recv(fd, buffer, MAX_BUFF - 1, 0);
     if (buff_readed <= 0)
     {
-        std::cout << "Client <" << clients[cli_indx].userName << "> disconnected." << std::endl;
+        std::cout << "Client <" << clients[cli_indx].fd_client << "> disconnected." << std::endl;
         // removeFromChannel(fd);
+        close(fd);
         fds.erase(fds.begin() + cli_indx + 1);
         clients.erase(clients.begin() + cli_indx);
         return;
     }
     clients[cli_indx].buffer.append(buffer, buff_readed);
-    while ((pos = clients[cli_indx].buffer.find_first_of("\r\n")) != std::string::npos)
+    int i = 0;
+    while (buffer[i])
     {
         process_command(cli_indx, clients[cli_indx].buffer.substr(0, pos));
-        clients[cli_indx].buffer.erase(0, pos + 2);
+        clients[cli_indx].buffer.erase(0, pos + 1);
     }
 }
 
@@ -165,6 +172,11 @@ std::vector<std::string>     get_args(std::string& line)
 	return vec;
 }
 
+void    Server::server_log(int index_client, std::string log)
+{
+    std::cout << "client <" << clients[index_client].fd_client << "> : " << log << std::endl;
+}
+
 void    Server::send_log(int index_client, std::string log)
 {
 	send(clients[index_client].fd_client, log.c_str(), log.size(), 0);
@@ -175,33 +187,98 @@ void    Server::pass(int index_client, std::vector <std::string> cmd_args)
     if (!clients[index_client].password.empty())
     {
         send_log(index_client, "PASS : you already enter the password\n");
+        server_log(index_client, "PASS : you already enter the password");
         return;
     }
     if (cmd_args.size() != 2)
     {
         send_log(index_client, "PASS : invalide args : <PASS> <password>\n");
+        server_log(index_client, "PASS : invalide args");
         return;
     }
     if (passwd != cmd_args[1])
     {
         send_log(index_client, "PASS : incorrect password\n");
+        server_log(index_client, "PASS : incorrect password");
         return;
     }
     clients[index_client].password = cmd_args[1];
     send_log(index_client, "PASS : password success\n");
+    server_log(index_client, "PASS : password success");
 }
 
 
-void    Server::nick(int index_client, std::vector <std::string> cmd_args)
+bool isValidNick(const std::string &nick)
 {
-    (void)cmd_args;
-    send_log(index_client, "inside NICK");
+    if (nick.empty())
+        return false;
+
+    if (nick.size() > 9)
+        return false;
+
+    for (size_t i = 0; i < nick.size(); i++)
+    {
+        char c = nick[i];
+        if (!std::isalnum(c) && c != '_')
+            return false;
+    }
+
+    return true;
 }
+
+
+void Server::nick(int index_client, std::vector<std::string> cmd_args)
+{
+    if (cmd_args.size() != 2)
+    {
+        send_log(index_client, "NICK : invalid args : <NICK> <nickname>\n");
+        server_log(index_client, "NICK : invalid args");
+        return;
+    }
+
+    std::string newNick = cmd_args[1];
+
+    if (!isValidNick(newNick))
+    {
+        send_log(index_client, "NICK : nickname must be alphanumeric or '_'\n");
+        server_log(index_client, "NICK : invalid nickname format");
+        return;
+    }
+
+    for (size_t i = 0; i < clients.size(); i++)
+    {
+        if ((int)i != index_client && clients[i].nickName == newNick)
+        {
+            send_log(index_client, "NICK : nickname already in use\n");
+            server_log(index_client, "NICK : nickname already in use");
+            return;
+        }
+    }
+
+    clients[index_client].nickName = newNick;
+    send_log(index_client, "NICK : nickname set to " + newNick + "\n");
+    server_log(index_client, "NICK set to " + newNick);
+}
+
 
 void    Server::user(int index_client, std::vector <std::string> cmd_args)
 {
-    (void)cmd_args;
-	send_log(index_client, "inside USER");
+    // if ()
+    if (cmd_args.size() < 5) // USER username hostname servername realname
+    {
+        send_log(index_client, "USER : Not enough parameters\n");
+        server_log(index_client, "USER : Not enough parameters");
+        return;
+    }
+    if (cmd_args[1].empty())
+    {
+        send_log(index_client, "USER : username should not be empty\n");
+        server_log(index_client, "USER : username should not be empty");
+        return;
+    }
+    clients[index_client].userName = cmd_args[1];
+    send_log(index_client, "USER : username set to " + cmd_args[1] + "\n");
+    server_log(index_client, "USER set to " + cmd_args[1]);
 }
 
 void    Server::privmsg(int index_client, std::vector <std::string> cmd_args)
@@ -233,6 +310,7 @@ void    Server::authenticate(int index_client, std::vector <std::string> cmd_arg
     if (clients[index_client].password.empty() && cmd_args[0] != "PASS")
     {
         send_log(index_client, "Please Enter the server Password First : PASS <passwd>\n");
+        server_log(index_client, "Please Enter the server Password First");
         return;
     }
     else if (cmd_args[0] == "PASS")
@@ -244,6 +322,7 @@ void    Server::authenticate(int index_client, std::vector <std::string> cmd_arg
     else
     {
         send_log(index_client, "Unknown command during authentication.Please complete your Registration\n");
+        server_log(index_client, "Unknown command during authentication.");
         return;
     }
     if (!clients[index_client].password.empty() 
@@ -253,6 +332,7 @@ void    Server::authenticate(int index_client, std::vector <std::string> cmd_arg
     {
         clients[index_client].authenticated = 1;
         send_log(index_client, "Registration successful. You are now authenticated!\n");
+        server_log(index_client, "Registration successful.");
     }
 }
 

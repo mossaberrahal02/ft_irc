@@ -13,8 +13,6 @@ public:
 	std::string 		buffer;
 	std::string 		nickName;
 	std::string 		userName;
-	std::string 		hostName;
-	std::string 		realName;
 	bool 				authenticated;
 	std::string 		password;
 	std::string			ipAddr;
