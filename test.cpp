@@ -2,27 +2,35 @@
 #include <vector>
 #include <sstream>
 
-std::vector<std::string> split_cmd(std::string cmd)
-{
-	std::vector<std::string> vec;
-	std::istringstream stm(cmd);
-	std::string word;
-	while(stm >> word)
-	{
-		vec.push_back(word);
-		std::cout << word << std::endl;
-		// word.clear();
-	}
-	return vec;
-}
 
+class A
+{
+public:
+	int x = 0;
+	A(){};
+	A(int i){x = i;};
+	~A(){};
+};
 
 int main()
 {
-	std::vector <std::string> vec = split_cmd(std::string("0 00 000 \t 0000\t\n00000\v000000"));
-	
-	// std::cout << vec.size() << std::endl;
-	// for (size_t i = 0; i < vec.size(); i++)
-	// 	std::cout << vec[i] << std::endl;
+	std::vector <A> aaa;
+	std::vector <A*> ccc;
+
+	aaa.push_back(A(1));
+	aaa.push_back(A(2));
+	aaa.push_back(A(3));
+	ccc.push_back(&aaa[0]);
+	ccc.push_back(&aaa[1]);
+	ccc.push_back(&aaa[2]);
+
+	std::cout << ccc[0]->x << std::endl;
+	std::cout << ccc[1]->x << std::endl;
+	std::cout << ccc[2]->x << std::endl;
+
+	aaa.erase(aaa.begin() + 0);
+	std::cout << ccc[0]->x << std::endl;
+	std::cout << ccc[1]->x << std::endl;
+	std::cout << ccc[2]->x << std::endl;
 	return 0;
 }

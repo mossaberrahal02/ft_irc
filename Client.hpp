@@ -12,10 +12,14 @@ public:
 	socklen_t			client_addr_len;
 	std::string 		buffer;
 	std::string 		userName;
+	std::string			hostname;
+	std::string			servername;
+	std::string			realname;
 	bool 				authenticated;
 	std::string 		password;
 	std::string 		nickName;
 	std::string			ipAddr;
+	int					max_channel;
 	Client(int fd);
 	~Client();
 };

@@ -26,22 +26,22 @@ Server::Server(int ac, char **av)
 
 	if (ac != 3)
     {
-        std::cout << "usage : ./ircserv <port> <password>" << std::endl;
+        std::cerr << "usage : ./ircserv <port> <password>" << std::endl;
         exit(EXIT_FAILURE);
     }
     valid_args(av);
 	memset(&addr_server, 0, sizeof(addr_server));
-    fd_server = socket(AF_INET, SOCK_STREAM, 0);
+    fd_server = socket(AF_INET, SOCK_STREAM | O_NONBLOCK, 0);
     if (fd_server < 0)
     {
         std::cerr << "can't create socket" << std::endl;
         exit(EXIT_FAILURE);
     }
-    if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
-    {
-        std::cerr << "can't set server non blocking" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    // if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
+    // {
+    //     std::cerr << "can't set server non blocking" << std::endl;
+    //     exit(EXIT_FAILURE);
+    // }
 
     if (setsockopt(fd_server, SOL_SOCKET, SO_REUSEADDR, &en, sizeof(en)) == -1)
     {
@@ -119,12 +119,12 @@ void        Server::new_connection()
         std::cerr << "can't accept new client" << std::endl;
         return;
     }
-    if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
-    {
-        std::cerr << "can't set client non blocking" << std::endl;
-        close(client.fd_client);
-        return;
-    }
+    // if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
+    // {
+    //     std::cerr << "can't set client non blocking" << std::endl;
+    //     close(client.fd_client);
+    //     return;
+    // }
     new_cli.fd = client.fd_client;
     new_cli.events = POLLIN;
     new_cli.revents = 0;
@@ -150,6 +150,7 @@ void        Server::process_client_data(int fd)
         return;
     }
     clients[cli_indx].buffer.append(buffer, buff_readed);
+    std::cout << "<" << clients[cli_indx].buffer <<">" << std::endl;
     while ((pos = clients[cli_indx].buffer.find_first_of("\r\n")) != std::string::npos)
     {
         process_command(cli_indx, clients[cli_indx].buffer.substr(0, pos));
@@ -174,31 +175,35 @@ void    Server::server_log(int index_client, std::string log)
 
 void    Server::send_log(int index_client, std::string log)
 {
-	send(clients[index_client].fd_client, log.c_str(), log.size(), 0);
+	if (send(clients[index_client].fd_client, log.c_str(), log.size(), 0) == -1)
+    {
+        std::cerr << "send error" << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }
 
 void    Server::pass(int index_client, std::vector <std::string> cmd_args)
 {
     if (!clients[index_client].password.empty())
     {
-        send_log(index_client, "PASS : you already enter the password\n");
+        send_log(index_client, "PASS : you already enter the password\r\n");
         server_log(index_client, "PASS : you already enter the password");
         return;
     }
     if (cmd_args.size() != 2)
     {
-        send_log(index_client, "PASS : invalide args : <PASS> <password>\n");
+        send_log(index_client, "PASS : invalide args : <PASS> <password>\r\n");
         server_log(index_client, "PASS : invalide args");
         return;
     }
     if (passwd != cmd_args[1])
     {
-        send_log(index_client, "PASS : incorrect password\n");
+        send_log(index_client, "PASS : incorrect password\r\n");
         server_log(index_client, "PASS : incorrect password");
         return;
     }
     clients[index_client].password = cmd_args[1];
-    send_log(index_client, "PASS : password success\n");
+    send_log(index_client, "PASS : password success\r\n");
     server_log(index_client, "PASS : password success");
 }
 
@@ -226,7 +231,7 @@ void Server::nick(int index_client, std::vector<std::string> cmd_args)
 {
     if (cmd_args.size() != 2)
     {
-        send_log(index_client, "NICK : invalid args : <NICK> <nickname>\n");
+        send_log(index_client, "NICK : invalid args : <NICK> <nickname>\r\n");
         server_log(index_client, "NICK : invalid args");
         return;
     }
@@ -235,7 +240,7 @@ void Server::nick(int index_client, std::vector<std::string> cmd_args)
 
     if (!isValidNick(newNick))
     {
-        send_log(index_client, "NICK : nickname must be alphanumeric or '_'\n");
+        send_log(index_client, "NICK : nickname must be alphanumeric or '_'\r\n");
         server_log(index_client, "NICK : invalid nickname format");
         return;
     }
@@ -251,7 +256,7 @@ void Server::nick(int index_client, std::vector<std::string> cmd_args)
     }
 
     clients[index_client].nickName = newNick;
-    send_log(index_client, "NICK : nickname set to " + newNick + "\n");
+    send_log(index_client, "NICK : nickname set to " + newNick + "\r\n");
     server_log(index_client, "NICK set to " + newNick);
 }
 
@@ -260,7 +265,7 @@ void    Server::user(int index_client, std::vector <std::string> cmd_args)
 {
     if (!clients[index_client].userName.empty())
     {
-        send_log(index_client, "USER : Already set\n");
+        send_log(index_client, "USER : Already set\r\n");
         server_log(index_client, "USER : Already set");
         return;
     }
@@ -276,20 +281,22 @@ void    Server::user(int index_client, std::vector <std::string> cmd_args)
         server_log(index_client, "USER : username should not be empty");
         return;
     }
-    clients[index_client].userName = cmd_args[1];
-    send_log(index_client, "USER : username set to " + cmd_args[1] + "\n");
+    clients[index_client].userName   = cmd_args[1];
+    clients[index_client].hostname   = cmd_args[2];
+    clients[index_client].servername = cmd_args[3];
+    clients[index_client].realname   = cmd_args[4];
+    send_log(index_client, "USER : username set to " + cmd_args[1] + "\r\n");
     server_log(index_client, "USER set to " + cmd_args[1]);
 }
 
 void    Server::quit(int index_client)
 {
-    int fd = clients[index_client].fd_client;
     server_log(index_client, "disconnected.");
     send_log(index_client, "QUIT : Goodbye\n");
     // removeFromChannel(fd);
+    close(clients[index_client].fd_client);
     fds.erase(fds.begin() + index_client + 1);
     clients.erase(clients.begin() + index_client);
-    close(fd);
 }
 
 
@@ -299,11 +306,7 @@ void    Server::privmsg(int index_client, std::vector <std::string> cmd_args)
     send_log(index_client, "inside PRIVMSG");
 }
 
-void    Server::join(int index_client, std::vector <std::string> cmd_args)
-{
-    (void)cmd_args;
-    send_log(index_client, "inside JOIN");
-}
+
 
 void    Server::invite(int index_client, std::vector <std::string> cmd_args)
 {
@@ -319,12 +322,14 @@ void    Server::kick(int index_client, std::vector <std::string> cmd_args)
 
 void    Server::topic(int index_client, std::vector <std::string> cmd_args)
 {
-
+    (void) index_client;
+    (void) cmd_args;
 }
 
 void    Server::mode(int index_client, std::vector <std::string> cmd_args)
 {
-
+    (void) index_client;
+    (void) cmd_args;
 }
 
 void    Server::authenticate(int index_client, std::vector <std::string> cmd_args)
@@ -336,7 +341,7 @@ void    Server::authenticate(int index_client, std::vector <std::string> cmd_arg
     }
     else if (clients[index_client].password.empty() && cmd_args[0] != "PASS")
     {
-        send_log(index_client, "Please Enter the server Password First : PASS <passwd>\n");
+        send_log(index_client, "Please Enter the server Password First : PASS <passwd>\r\n");
         server_log(index_client, "Please Enter the server Password First");
         return;
     }
@@ -348,7 +353,7 @@ void    Server::authenticate(int index_client, std::vector <std::string> cmd_arg
         user(index_client, cmd_args);
     else
     {
-        send_log(index_client, "Unknown command during authentication.Please complete your Registration\n");
+        send_log(index_client, "Unknown command during authentication.Please complete your Registration\r\n");
         server_log(index_client, "Unknown command during authentication.");
         return;
     }
@@ -358,7 +363,7 @@ void    Server::authenticate(int index_client, std::vector <std::string> cmd_arg
         && !clients[index_client].authenticated)
     {
         clients[index_client].authenticated = 1;
-        send_log(index_client, "Registration successful. You are now authenticated!\n");
+        send_log(index_client, "Registration successful. You are now authenticated!\r\n");
         server_log(index_client, "Registration successful.");
     }
 }
@@ -379,6 +384,11 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
         return topic(index_client, cmd_args);
     else if (cmd_args[0] == "MODE")
         return mode(index_client, cmd_args);
+    else
+    {
+        send_log(index_client, "Error : Unknown command\r\n");
+        server_log(index_client, "Error : Unknown command");
+    }
 }
 
 void    Server::process_command(int index_client, std::string line)
@@ -392,7 +402,7 @@ void    Server::process_command(int index_client, std::string line)
     }
     else if (cmd_args[0] == "PASS" || cmd_args[0] == "NICK" || cmd_args[0] == "USER")
     {
-        send_log(index_client, "NOTE : you already authentificated\n");
+        send_log(index_client, "NOTE : you already authentificated\r\n");
         server_log(index_client, "NOTE : you already authentificated");
     }
     else

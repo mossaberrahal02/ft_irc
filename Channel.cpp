@@ -8,6 +8,7 @@ key(0),
 limit(0),
 topic_restriction(false)
 {
+	
 }
 
 Channel::~Channel()

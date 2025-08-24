@@ -6,7 +6,8 @@ Client::Client(int fd):
 fd_client(fd),
 authenticated(false),
 password(""),
-nickName("")
+nickName(""),
+max_channel(0)
 {
 	memset(&client_addr, 0, sizeof(client_addr));
 	client_addr_len = sizeof(client_addr);
