@@ -15,6 +15,7 @@
 #define MAX_BUFF 1024
 
 
+
 #include <cerrno>
 
 class Server
@@ -33,6 +34,8 @@ public:
 	~Server();
 	void    		server_log(int index_client, std::string log);
 	void		    send_log(int index_client, std::string log);
+	void			join_channel(int index_client, int index_channel, std::string passkey);
+	void			create_channel(int index_client, std::string new_channel, std::string passkey);
 	void    		quit(int index_client);
 	void    		pass(int index_client, std::vector <std::string> cmd_args);
 	void    		nick(int index_client, std::vector <std::string> cmd_args);
