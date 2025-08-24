@@ -131,7 +131,7 @@ void        Server::new_connection()
     client.ipAddr = std::string(inet_ntoa(client.client_addr.sin_addr));
     clients.push_back(client);
     fds.push_back(new_cli);
-    std::cout << "Client <" << client.fd_client << "> Connected" << std::endl;
+    std::cout << "Client <" << client.fd_client << "> hostname <" << client.ipAddr << "> Connected" << std::endl;
     std::string welcome = "Welcome to the server!\nPlease Register yourself on our server!\r\n";
     send(client.fd_client, welcome.c_str(), welcome.size(), 0);
 }
@@ -146,11 +146,7 @@ void        Server::process_client_data(int fd)
     buff_readed = recv(fd, buffer, MAX_BUFF - 1, 0);
     if (buff_readed <= 0)
     {
-        std::cout << "Client <" << clients[cli_indx].fd_client << "> disconnected." << std::endl;
-        // removeFromChannel(fd);
-        close(fd);
-        fds.erase(fds.begin() + cli_indx + 1);
-        clients.erase(clients.begin() + cli_indx);
+        quit(cli_indx);
         return;
     }
     clients[cli_indx].buffer.append(buffer, buff_readed);
@@ -285,6 +281,18 @@ void    Server::user(int index_client, std::vector <std::string> cmd_args)
     server_log(index_client, "USER set to " + cmd_args[1]);
 }
 
+void    Server::quit(int index_client)
+{
+    int fd = clients[index_client].fd_client;
+    server_log(index_client, "disconnected.");
+    send_log(index_client, "QUIT : Goodbye\n");
+    // removeFromChannel(fd);
+    fds.erase(fds.begin() + index_client + 1);
+    clients.erase(clients.begin() + index_client);
+    close(fd);
+}
+
+
 void    Server::privmsg(int index_client, std::vector <std::string> cmd_args)
 {
     (void)cmd_args;
@@ -309,9 +317,24 @@ void    Server::kick(int index_client, std::vector <std::string> cmd_args)
     send_log(index_client, "inside KICK");
 }
 
+void    Server::topic(int index_client, std::vector <std::string> cmd_args)
+{
+
+}
+
+void    Server::mode(int index_client, std::vector <std::string> cmd_args)
+{
+
+}
+
 void    Server::authenticate(int index_client, std::vector <std::string> cmd_args)
 {
-    if (clients[index_client].password.empty() && cmd_args[0] != "PASS")
+    if (cmd_args[0] == "QUIT")
+    {
+        quit(index_client);
+        return;
+    }
+    else if (clients[index_client].password.empty() && cmd_args[0] != "PASS")
     {
         send_log(index_client, "Please Enter the server Password First : PASS <passwd>\n");
         server_log(index_client, "Please Enter the server Password First");
@@ -340,17 +363,22 @@ void    Server::authenticate(int index_client, std::vector <std::string> cmd_arg
     }
 }
 
-
 void    Server::normal_commands(int index_client, std::vector <std::string> cmd_args)
 {
-    if (cmd_args[0] == "PRVIMSG")
+    if (cmd_args[0] == "QUIT")
+        quit(index_client);
+    else if (cmd_args[0] == "PRVIMSG")
         return privmsg(index_client, cmd_args);
-    if (cmd_args[0] == "JOIN")
+    else if (cmd_args[0] == "JOIN")
         return join(index_client, cmd_args);
-    if (cmd_args[0] == "INVITE")
+    else if (cmd_args[0] == "INVITE")
         return invite(index_client, cmd_args);
-    if (cmd_args[0] == "KICK")
+    else if (cmd_args[0] == "KICK")
         return kick(index_client, cmd_args);
+    else if (cmd_args[0] == "TOPIC")
+        return topic(index_client, cmd_args);
+    else if (cmd_args[0] == "MODE")
+        return mode(index_client, cmd_args);
 }
 
 void    Server::process_command(int index_client, std::string line)
@@ -361,6 +389,11 @@ void    Server::process_command(int index_client, std::string line)
     if (clients[index_client].authenticated == false)
     {
         authenticate(index_client, cmd_args);
+    }
+    else if (cmd_args[0] == "PASS" || cmd_args[0] == "NICK" || cmd_args[0] == "USER")
+    {
+        send_log(index_client, "NOTE : you already authentificated\n");
+        server_log(index_client, "NOTE : you already authentificated");
     }
     else
     {

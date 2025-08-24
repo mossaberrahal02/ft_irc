@@ -11,10 +11,10 @@ public:
 	struct sockaddr_in	client_addr;
 	socklen_t			client_addr_len;
 	std::string 		buffer;
-	std::string 		nickName;
 	std::string 		userName;
 	bool 				authenticated;
 	std::string 		password;
+	std::string 		nickName;
 	std::string			ipAddr;
 	Client(int fd);
 	~Client();

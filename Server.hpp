@@ -33,6 +33,7 @@ public:
 	~Server();
 	void    		server_log(int index_client, std::string log);
 	void		    send_log(int index_client, std::string log);
+	void    		quit(int index_client);
 	void    		pass(int index_client, std::vector <std::string> cmd_args);
 	void    		nick(int index_client, std::vector <std::string> cmd_args);
 	void    		user(int index_client, std::vector <std::string> cmd_args);
@@ -40,6 +41,8 @@ public:
 	void    		join(int index_client, std::vector <std::string> cmd_args);
 	void    		invite(int index_client, std::vector <std::string> cmd_args);
 	void    		kick(int index_client, std::vector <std::string> cmd_args);
+	void    		topic(int index_client, std::vector <std::string> cmd_args);
+	void    		mode(int index_client, std::vector <std::string> cmd_args);
 	void    		normal_commands(int index_client, std::vector <std::string> cmd_args);
 	void    		authenticate(int index_client, std::vector <std::string> cmd_args);
 	int 			getClient(int fd);
