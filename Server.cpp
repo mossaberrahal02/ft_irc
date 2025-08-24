@@ -154,8 +154,7 @@ void        Server::process_client_data(int fd)
         return;
     }
     clients[cli_indx].buffer.append(buffer, buff_readed);
-    int i = 0;
-    while (buffer[i])
+    while ((pos = clients[cli_indx].buffer.find_first_of("\r\n")) != std::string::npos)
     {
         process_command(cli_indx, clients[cli_indx].buffer.substr(0, pos));
         clients[cli_indx].buffer.erase(0, pos + 1);
@@ -263,7 +262,12 @@ void Server::nick(int index_client, std::vector<std::string> cmd_args)
 
 void    Server::user(int index_client, std::vector <std::string> cmd_args)
 {
-    // if ()
+    if (!clients[index_client].userName.empty())
+    {
+        send_log(index_client, "USER : Already set\n");
+        server_log(index_client, "USER : Already set");
+        return;
+    }
     if (cmd_args.size() < 5) // USER username hostname servername realname
     {
         send_log(index_client, "USER : Not enough parameters\n");
