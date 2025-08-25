@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include <iostream>
 
 void valid_args(char **av)
 {
@@ -299,15 +300,6 @@ void    Server::quit(int index_client)
     clients.erase(clients.begin() + index_client);
 }
 
-
-void    Server::privmsg(int index_client, std::vector <std::string> cmd_args)
-{
-    (void)cmd_args;
-    send_log(index_client, "inside PRIVMSG");
-}
-
-
-
 void    Server::invite(int index_client, std::vector <std::string> cmd_args)
 {
     (void)cmd_args;
@@ -372,7 +364,7 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
 {
     if (cmd_args[0] == "QUIT")
         quit(index_client);
-    else if (cmd_args[0] == "PRVIMSG")
+    else if (cmd_args[0] == "PRIVMSG")
         return privmsg(index_client, cmd_args);
     else if (cmd_args[0] == "JOIN")
         return join(index_client, cmd_args);
@@ -395,7 +387,7 @@ void    Server::process_command(int index_client, std::string line)
 {
     std::vector<std::string> cmd_args = get_args(line);
     if (line.empty())
-    return;
+        return;
     if (clients[index_client].authenticated == false)
     {
         authenticate(index_client, cmd_args);
