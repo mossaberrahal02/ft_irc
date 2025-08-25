@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include <iostream>
 
 void valid_args(char **av)
 {
@@ -32,9 +33,15 @@ Server::Server(int ac, char **av)
     valid_args(av);
 	memset(&addr_server, 0, sizeof(addr_server));
     fd_server = socket(AF_INET, SOCK_STREAM, 0);
+    fd_server = socket(AF_INET, SOCK_STREAM, 0);
     if (fd_server < 0)
     {
         std::cerr << "can't create socket" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
+    {
+        std::cerr << "can't set server non blocking" << std::endl;
         exit(EXIT_FAILURE);
     }
     if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
@@ -125,6 +132,12 @@ void        Server::new_connection()
         close(client.fd_client);
         return;
     }
+    if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
+    {
+        std::cerr << "can't set client non blocking" << std::endl;
+        close(client.fd_client);
+        return;
+    }
     new_cli.fd = client.fd_client;
     new_cli.events = POLLIN;
     new_cli.revents = 0;
@@ -150,6 +163,7 @@ void        Server::process_client_data(int fd)
         return;
     }
     clients[cli_indx].buffer.append(buffer, buff_readed);
+    // std::cout << "<" << clients[cli_indx].buffer <<">" << std::endl;
     // std::cout << "<" << clients[cli_indx].buffer <<">" << std::endl;
     while ((pos = clients[cli_indx].buffer.find_first_of("\r\n")) != std::string::npos)
     {
@@ -250,6 +264,7 @@ void Server::nick(int index_client, std::vector<std::string> cmd_args)
         if ((int)i != index_client && clients[i].nickName == newNick)
         {
             send_log(index_client, "NICK : nickname already in use\r\n");
+            send_log(index_client, "NICK : nickname already in use\r\n");
             server_log(index_client, "NICK : nickname already in use");
             return;
         }
@@ -272,11 +287,13 @@ void    Server::user(int index_client, std::vector <std::string> cmd_args)
     if (cmd_args.size() < 5) // USER username hostname servername realname
     {
         send_log(index_client, "USER : Not enough parameters\r\n");
+        send_log(index_client, "USER : Not enough parameters\r\n");
         server_log(index_client, "USER : Not enough parameters");
         return;
     }
     if (cmd_args[1].empty())
     {
+        send_log(index_client, "USER : username should not be empty\r\n");
         send_log(index_client, "USER : username should not be empty\r\n");
         server_log(index_client, "USER : username should not be empty");
         return;
@@ -292,6 +309,7 @@ void    Server::user(int index_client, std::vector <std::string> cmd_args)
 void    Server::quit(int index_client)
 {
     server_log(index_client, "disconnected.");
+    send_log(index_client, "QUIT : Goodbye\r\n");
     send_log(index_client, "QUIT : Goodbye\r\n");
     // removeFromChannel(fd);
     close(clients[index_client].fd_client);
@@ -367,11 +385,52 @@ void    Server::invite(int index_client, std::vector <std::string> cmd_args)
     send_log(index_client, "INVITE : you invite @" + nickname + " to " + channel_name +"\r\n");
     send_log(index_invited, "@" + clients[index_client].nickName + " invite you to " + channel_name + "\r\n");
     server_log(index_client, "INVITE : invite @" + nickname + " to " + channel_name);
+    std::string nickname;
+    std::string channel_name;
+    int         index_channel = -1;
+    int         index_invited = -1;
+
+    if (cmd_args.size() != 3)
+    {
+        send_log(index_client, "INVITE : Invalid parameters\r\n");
+        server_log(index_client, "INVITE : Invalid parameters.");
+        return;
+    }
+    nickname = cmd_args[1];
+    channel_name = cmd_args[2];
+    index_channel = channelFound(channels, channel_name);
+    index_invited = userFound(clients, nickname);
+    if (index_invited == -1 || index_channel == -1)
+    {
+        send_log(index_client, "INVITE : No Such user or channel\r\n");
+        server_log(index_client, "INVITE : No Such user or channe");
+        return;
+    }
+    if (!isExistInChannel(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins))
+    {
+        send_log(index_client, "INVITE : You are not in this channel\r\n");
+        server_log(index_client, "INVITE : You are not in this channel");
+        return;
+    }
+    if (isExistInChannel(clients[index_invited].fd_client, channels[index_channel].clients, channels[index_channel].admins))
+    {
+        send_log(index_client, "INVITE : Already in this channel\r\n");
+        server_log(index_client, "INVITE : Already in this channel");
+        return;
+    }
+    if (channels[index_channel].invit_only)
+        channels[index_channel].invited.push_back(clients[index_invited].fd_client);
+    sendToAll(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins,
+        "INVITE : @" + clients[index_client].nickName + " invite @" + nickname + " to " + channel_name + "\r\n");
+    send_log(index_client, "INVITE : you invite @" + nickname + " to " + channel_name +"\r\n");
+    send_log(index_invited, "@" + clients[index_client].nickName + " invite you to " + channel_name + "\r\n");
+    server_log(index_client, "INVITE : invite @" + nickname + " to " + channel_name);
 }
 
 void    Server::kick(int index_client, std::vector <std::string> cmd_args)
 {
     (void)cmd_args;
+    send_log(index_client, "inside KICK\r\n");
     send_log(index_client, "inside KICK\r\n");
 }
 
@@ -427,7 +486,7 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
 {
     if (cmd_args[0] == "QUIT")
         quit(index_client);
-    else if (cmd_args[0] == "PRVIMSG")
+    else if (cmd_args[0] == "PRIVMSG")
         return privmsg(index_client, cmd_args);
     else if (cmd_args[0] == "JOIN")
         return join(index_client, cmd_args);
@@ -450,7 +509,7 @@ void    Server::process_command(int index_client, std::string line)
 {
     std::vector<std::string> cmd_args = get_args(line);
     if (line.empty())
-    return;
+        return;
     if (clients[index_client].authenticated == false)
     {
         authenticate(index_client, cmd_args);

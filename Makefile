@@ -1,6 +1,6 @@
 NAME = ircserv
 
-SRC = main.cpp Server.cpp Client.cpp Channel.cpp join.cpp
+SRC = main.cpp Server.cpp Client.cpp Channel.cpp join.cpp privmsg.cpp
 
 OBJ = main.o Server.o Client.o Channel.o join.o
 
