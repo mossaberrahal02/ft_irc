@@ -14,10 +14,6 @@
 #include "Channel.hpp"
 #define MAX_BUFF 1024
 
-
-
-#include <cerrno>
-
 class Server
 {
 public:
@@ -34,6 +30,8 @@ public:
 	~Server();
 	void    		server_log(int index_client, std::string log);
 	void		    send_log(int index_client, std::string log);
+	bool			isExistInChannel(int fd_client, std::vector<Client> &channel_clients, std::vector<Client> &admins);
+	void			sendToAll(int fd_client, std::vector<Client> &clients, std::vector<Client> &admins, std::string log);
 	void			join_channel(int index_client, int index_channel, std::string passkey);
 	void			create_channel(int index_client, std::string new_channel, std::string passkey);
 	void    		quit(int index_client);

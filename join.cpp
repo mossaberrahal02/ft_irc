@@ -8,7 +8,7 @@ bool	isInvited(std::vector<Client> &clients, std::vector<int> &invited)
 	return false;
 }
 
-bool	isExist(int fd_client, std::vector<Client> &channel_clients, std::vector<Client> &admins)
+bool	Server::isExistInChannel(int fd_client, std::vector<Client> &channel_clients, std::vector<Client> &admins)
 {
 	for (size_t i = 0; i < channel_clients.size(); i++)
 	{
@@ -23,7 +23,7 @@ bool	isExist(int fd_client, std::vector<Client> &channel_clients, std::vector<Cl
 	return false;
 }
 
-void	sendToAll(int fd_client, std::vector<Client> &clients, std::vector<Client> &admins, std::string log)
+void	Server::sendToAll(int fd_client, std::vector<Client> &clients, std::vector<Client> &admins, std::string log)
 {
 	for (size_t i = 0; i < admins.size(); i++)
 		if (admins[i].fd_client != fd_client)
@@ -35,7 +35,7 @@ void	sendToAll(int fd_client, std::vector<Client> &clients, std::vector<Client> 
 
 void	Server::join_channel(int index_client, int index_channel, std::string passkey)
 {
-	if (isExist(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins))
+	if (isExistInChannel(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins))
 	{
 		send_log(index_client, "JOIN : You Already in this channel\r\n");
 		server_log(index_client, "JOIN : Already in this channel");
@@ -76,7 +76,8 @@ bool isValidChannelName(const std::string &new_channel)
         return false;
 
     // Check allowed characters after '#'
-    for (std::size_t i = 1; i < new_channel.size(); ++i) {
+    for (std::size_t i = 1; i < new_channel.size(); ++i) 
+	{
         char c = new_channel[i];
         if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_')
             return false;
@@ -84,9 +85,8 @@ bool isValidChannelName(const std::string &new_channel)
 
     // (Optional) Max length check (common IRC limit is 50)
     if (new_channel.size() > 20)
-	{
 		return false;
-	}
+
 	return true;
 }
 

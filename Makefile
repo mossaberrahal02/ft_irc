@@ -6,7 +6,7 @@ OBJ = main.o Server.o Client.o Channel.o join.o
 
 CXX = c++
 
-CXXFLAGS = -Wextra -Werror -Wall -std=c++98 #-fsanitize=address -g3
+CXXFLAGS = -Wextra -Werror -Wall -std=c++98 
 
 $(NAME) : $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJ)

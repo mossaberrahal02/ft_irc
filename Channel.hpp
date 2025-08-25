@@ -19,7 +19,5 @@ public:
 	std::vector<int>	invited;
 	Channel();
 	~Channel();
-	Channel(const Channel& obj);
-	Channel&	operator=(const Channel& obj);
 };
 
