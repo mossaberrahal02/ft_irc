@@ -50,4 +50,6 @@ public:
 	void			process_command(int index_client,std::string line);
 	void			process_client_data(int fd);
 	void			loop();
+	int 			get_client_index_by_nick(const std::string &nick);
+	void 			send_to_channel(int index_client, std::string &channel, const std::string &message);
 };
