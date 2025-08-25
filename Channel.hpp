@@ -8,8 +8,7 @@
 class Channel
 {
 public:
-	int invit_only;
-	int topic;
+	bool invit_only;
 	int limit;
 	bool topic_restriction;
 	std::string name;
@@ -20,5 +19,7 @@ public:
 	std::vector<int>	invited;
 	Channel();
 	~Channel();
+	Channel(const Channel& obj);
+	Channel&	operator=(const Channel& obj);
 };
 

@@ -8,11 +8,18 @@ bool	isInvited(std::vector<Client> &clients, std::vector<int> &invited)
 	return false;
 }
 
-bool	isExist(std::vector<Client> &clients, std::vector<Client> &channel_clients)
+bool	isExist(int fd_client, std::vector<Client> &channel_clients, std::vector<Client> &admins)
 {
 	for (size_t i = 0; i < channel_clients.size(); i++)
-		if (clients[i].fd_client == channel_clients[i].fd_client)
+	{
+		if (fd_client == channel_clients[i].fd_client)
 			return true;
+	}
+	for (size_t i = 0; i < admins.size(); i++)
+	{
+		if (fd_client == admins[i].fd_client)
+			return true;
+	}
 	return false;
 }
 
@@ -28,10 +35,10 @@ void	sendToAll(int fd_client, std::vector<Client> &clients, std::vector<Client> 
 
 void	Server::join_channel(int index_client, int index_channel, std::string passkey)
 {
-	if (isExist(clients, channels[index_channel].clients))
+	if (isExist(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins))
 	{
 		send_log(index_client, "JOIN : You Already in this channel\r\n");
-		server_log(index_client, "JOIN : You Already in this channel");
+		server_log(index_client, "JOIN : Already in this channel");
 		return;
 	}
 	if ((size_t)channels[index_channel].limit <= channels[index_channel].clients.size())
@@ -46,14 +53,17 @@ void	Server::join_channel(int index_client, int index_channel, std::string passk
 		server_log(index_client, "JOIN : Channel Invalid key");
 		return;
 	}
+	// std::cout << "invite_only --> " << channels[index_channel].invit_only << std::endl;
 	if (channels[index_channel].invit_only && !isInvited(clients, channels[index_channel].invited))
 	{
 		send_log(index_client, "JOIN : Channel is Invite only\r\n");
 		server_log(index_client, "JOIN : Channel is Invite only");
 		return;
 	}
-	sendToAll(clients[index_client].fd_client, clients, channels[index_channel].admins,
-		": " + clients[index_client].nickName + " join " + channels[index_channel].name);
+	sendToAll(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins,
+		"@" + clients[index_client].nickName + " join " + channels[index_channel].name + "\r\n");
+	send_log(index_client, "JOIN : you are in channel " + channels[index_channel].name + "\r\n");
+	server_log(index_client, "JOIN : to channel " + channels[index_channel].name);
 	channels[index_channel].clients.push_back(clients[index_client]);
 	clients[index_client].max_channel ++;
 }
@@ -61,29 +71,24 @@ void	Server::join_channel(int index_client, int index_channel, std::string passk
 
 bool isValidChannelName(const std::string &new_channel)
 {
-    if (new_channel.empty())
+    // Must start with '#'
+    if (new_channel.size() <= 3 || new_channel[0] != '#')
         return false;
 
-    // must start with '#'
-    if (new_channel[0] != '#')
-        return false;
-
-    // must have at least one character after '#'
-    if (new_channel.size() == 1)
-        return false;
-
-    // check remaining characters
-    for (size_t i = 1; i < new_channel.size(); i++)
-    {
+    // Check allowed characters after '#'
+    for (std::size_t i = 1; i < new_channel.size(); ++i) {
         char c = new_channel[i];
-        if (!std::isalnum(c) && c != '_')
+        if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_')
             return false;
     }
 
-    return true;
+    // (Optional) Max length check (common IRC limit is 50)
+    if (new_channel.size() > 20)
+	{
+		return false;
+	}
+	return true;
 }
-
-
 
 void	Server::create_channel(int index_client, std::string new_channel, std::string passkey)
 {
@@ -96,14 +101,18 @@ void	Server::create_channel(int index_client, std::string new_channel, std::stri
 		return;
 	}
 	n_channel.password = passkey;
-	//...
+	n_channel.name = new_channel;
+	n_channel.admins.push_back(clients[index_client]);
+	channels.push_back(n_channel);
+	send_log(index_client, "JOIN : Channel " + new_channel + " created\r\n");
+	server_log(index_client, "create channel " + new_channel);
 }
 
 void    		Server::join(int index_client, std::vector <std::string> cmd_args)
 {
 	std::string		chan("");
 	std::string		passkey("");
-
+	// std::cout << "kaynin f join" << std::endl;
 	if (cmd_args.size() < 2 || cmd_args.size() > 3)
 	{
 		send_log(index_client, "JOIN : Invalid parameters\r\n");
@@ -119,131 +128,17 @@ void    		Server::join(int index_client, std::vector <std::string> cmd_args)
 	chan = cmd_args[1];
 	if (cmd_args.size() == 3)
 		passkey = cmd_args[2];
+	// std::cout << "new_channel : " << chan << std::endl;
 	for (size_t i = 0; i < channels.size(); i++)
 	{
+		// std::cout << "channel["<< i << "] : " << channels[i].name << std::endl;
+		// std::cout << "channel[i] == chan : " << (channels[i].name == chan) << std::endl;
 		if (channels[i].name == chan)
+		{
 			join_channel(index_client, i, passkey);
-		else
-			create_channel(index_client, chan, passkey);
+			return;
+		}
 	}
+	create_channel(index_client, chan, passkey);
+	// std::cout << "khrejna mn join" << std::endl;
 }
-
-
-// std::string	Server::_joinChannel( Request request, int i )
-// {
-// 	while (itChannels != parsChannels.end() && j == 1)
-// 	{
-// 		if ( itKeys != parsKeys.end())
-// 			j = _createPrvChannel(*itChannels, *itKeys, i);
-// 		else
-// 			j = _createChannel(*itChannels, i);
-// 		if (j == BADCHANMASK)
-// 			return (_printMessage("476", this->_clients[i]->getNickName(), *itChannels + " :Bad Channel Mask"));
-// 		if (j == BANNEDFROMCHAN)
-// 			return (_printMessage("474", this->_clients[i]->getNickName(), *itChannels + " :Cannot join channel (+b)"));
-// 		if (j == TOOMANYCHANNELS )
-// 			return (_printMessage("405", this->_clients[i]->getNickName(), *itChannels + " :You have joined too many channels"));
-// 		if (j == BADCHANNELKEY )
-// 			return (_printMessage("475", this->_clients[i]->getNickName(), *itChannels + " :Cannot join channel (+k)"));
-// 		if (j == CHANNELISFULL )
-// 			return (_printMessage("471", this->_clients[i]->getNickName(), *itChannels + " :Cannot join channel (+l)"));
-// 		if (j == NOSUCHCHANNEL)
-// 			return (_printMessage("403", this->_clients[i]->getNickName(), *itChannels + " :No such channel"));
-// 		if (itKeys != parsKeys.end())
-// 			itKeys++;
-// 		itChannels++;
-// 	};
-// 	--itChannels;
-// 	return ("");
-// };
-
-// int	Server::_createChannel( std::string ChannelName, int CreatorFd )
-// {
-// 	std::map<std::string, Channel *>::iterator it = this->_allChannels.find(ChannelName);
-// 	if (it == this->_allChannels.end())
-// 	{
-// 		if (ChannelName[0] != '&' && ChannelName[0] != '#' && ChannelName[0] != '+' && ChannelName[0] != '!')
-// 			return (BADCHANMASK);
-// 		Channel *channel = new Channel(ChannelName, this->_clients[CreatorFd]);
-// 		this->_allChannels.insert(std::pair<std::string, Channel *>(ChannelName, channel));
-// 		this->_clients[CreatorFd]->joinChannel( ChannelName, channel );
-// 	}
-// 	else
-// 	{
-// 		if (it->second->getKey().empty())
-// 		{
-// 			int i = 0;
-// 			if (this->_clients[CreatorFd]->getisOperator() == true)
-// 				i = it->second->addOperator(this->_clients[CreatorFd]);
-// 			else
-// 				i = it->second->addMember(this->_clients[CreatorFd]);
-// 			if (i == USERISJOINED)
-// 				this->_clients[CreatorFd]->joinChannel( it->first, it->second );
-// 			else if (i == USERALREADYJOINED)
-// 				return (USERALREADYJOINED);
-// 			else if (i == BANNEDFROMCHAN)
-// 				return (BANNEDFROMCHAN);
-// 			_sendall(CreatorFd, this->_clients[CreatorFd]->getUserPerfix() + "JOIN " + ChannelName + "\n");
-// 			_sendall(CreatorFd, _printMessage("332", this->_clients[CreatorFd]->getNickName(), ChannelName + " :" + it->second->getTopic()));
-// 			_sendall(CreatorFd, _printMessage("353", this->_clients[CreatorFd]->getNickName() + " = " + ChannelName, it->second->listAllUsers()));
-// 			_sendall(CreatorFd, _printMessage("353", this->_clients[CreatorFd]->getNickName() + " " + ChannelName, ":End of NAMES list"));
-// 			std::string reply = "JOIN " + ChannelName + "\n";
-// 			_sendToAllUsers(it->second, CreatorFd, reply);
-// 			return (USERISJOINED);
-// 		}
-// 	}
-// 	return (USERISJOINED);
-// };
-
-// int	Server::_createPrvChannel( std::string ChannelName, std::string ChannelKey, int CreatorFd)
-// {
-// 	std::map<std::string, Channel *>::iterator it = this->_allChannels.find(ChannelName);
-// 	if (it == this->_allChannels.end())
-// 	{
-// 		if (ChannelName[0] != '&' && ChannelName[0] != '#' && ChannelName[0] != '+' && ChannelName[0] != '!')
-// 			return (BADCHANMASK);
-// 		Channel *channel = new Channel(ChannelName, ChannelKey, this->_clients[CreatorFd]);
-// 		this->_allChannels.insert(std::pair<std::string, Channel *>(ChannelName, channel));
-// 		this->_clients[CreatorFd]->joinChannel(ChannelName, channel);
-// 	}
-// 	else
-// 	{
-// 		if (it->second->getKey() == ChannelKey)
-// 		{
-// 			int i = 0;
-// 			if (this->_clients[CreatorFd]->getisOperator() == true)
-// 				i = it->second->addOperator(this->_clients[CreatorFd]);
-// 			else
-// 				i = it->second->addMember(this->_clients[CreatorFd]);
-// 			if (i == USERISJOINED)
-// 				this->_clients[CreatorFd]->joinChannel( it->first, it->second );
-// 			else if (i == USERALREADYJOINED)
-// 				return (USERALREADYJOINED);
-// 			else if (i == BANNEDFROMCHAN)
-// 				return (BANNEDFROMCHAN);
-// 			_sendall(CreatorFd, this->_clients[CreatorFd]->getUserPerfix() + "JOIN " + ChannelName + "\n");
-// 			_sendall(CreatorFd, _printMessage("332", this->_clients[CreatorFd]->getNickName(), ChannelName + " :" + it->second->getTopic()));
-// 			_sendall(CreatorFd, _printMessage("353", this->_clients[CreatorFd]->getNickName() + " = " + ChannelName, it->second->listAllUsers()));
-// 			_sendall(CreatorFd, _printMessage("353", this->_clients[CreatorFd]->getNickName() + ChannelName, ":End of NAMES list"));
-// 			std::string reply = "JOIN " + ChannelName + "\n";
-// 			_sendToAllUsers(it->second, CreatorFd, reply);
-// 			return (USERISJOINED);
-// 		}
-// 		else
-// 			return (BADCHANNELKEY);
-// 	}
-// 	return (USERISJOINED);
-// };
-
-// std::vector<std::string> Server::_commaSeparator(std::string arg)
-// {
-// 	std::vector<std::string> ret;
-// 	size_t pos = 0;
-// 	while ((pos = arg.find(",")) != std::string::npos)
-// 	{
-// 		ret.push_back(arg.substr(0, pos));
-// 		arg.erase(0, pos + 1);
-// 	}
-// 	ret.push_back(arg.substr(0, pos));
-// 	return (ret);
-// };
