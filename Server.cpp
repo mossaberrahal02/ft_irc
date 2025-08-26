@@ -1,5 +1,6 @@
 #include "Server.hpp"
 #include <iostream>
+#include <sstream>
 
 void valid_args(char **av)
 {
@@ -144,7 +145,9 @@ void        Server::new_connection()
     clients.push_back(client);
     fds.push_back(new_cli);
     std::cout << "Client <" << client.fd_client << "> hostname <" << client.ipAddr << "> Connected" << std::endl;
-    std::string welcome = "Welcome to the server!\nPlease Register yourself on our server!\r\n";
+    std::stringstream ss;
+    ss << client.fd_client;
+    std::string welcome = "<fd = " + ss.str() + "> Welcome to the server!\nPlease Register yourself on our server!\r\n";
     send(client.fd_client, welcome.c_str(), welcome.size(), 0);
 }
 

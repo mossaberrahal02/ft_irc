@@ -53,4 +53,6 @@ public:
 	void			loop();
 	int 			get_client_index_by_nick(const std::string &nick);
 	void 			send_to_channel(int index_client, std::string &channel, const std::string &message);
+	Client 			*get_client_by_fd(int fd);
+	void			send_to_client(int fd, std::string log);
 };
