@@ -7,7 +7,7 @@ OBJ = ${SRC:.cpp=.o}
 
 CXX = c++
 
-CXXFLAGS = -Wextra  -Wall -std=c++98 -fsanitize=address -g3 #-Werror
+CXXFLAGS = -Wextra  -Wall -std=c++98 -Werror #-fsanitize=address -g3
 
 $(NAME) : $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJ)
