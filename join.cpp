@@ -30,7 +30,7 @@ void	Server::sendToAll(int fd_client, std::vector<Client> &clients, std::vector<
 			send(admins[i].fd_client, log.c_str(), log.size(), 0);
 	for (size_t i = 0; i < clients.size(); i++)
 		if (clients[i].fd_client != fd_client)
-			send(admins[i].fd_client, log.c_str(), log.size(), 0);
+			send(clients[i].fd_client, log.c_str(), log.size(), 0);
 }
 
 void	Server::join_channel(int index_client, int index_channel, std::string passkey)

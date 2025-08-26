@@ -11,6 +11,23 @@ int Server::get_client_index_by_nick(const std::string &nick)
     return -1;
 }
 
+Client *get_client_by_fd()
+{
+    
+}
+
+void    Server::send_to_client(int fd, std::string log)
+{
+    std::cout << "sending to fd = <" << send_to_client << "> : " << " nickname : " << clients[index_client].nickName << " " << std::endl;
+	int ret = send(clients[index_client].fd_client, log.c_str(), log.size(), 0);
+    if (ret == -1)
+    {
+        std::cout << "i could'nt send to <" << clients[index_client].fd_client << "> : " << " nickname : " << clients[index_client].nickName << " " << std::endl;
+        std::cerr << "send error" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
 void Server::send_to_channel(int index_client, std::string &channel, const std::string &message)
 {
     // std::string chan_name = channel.substr(1); // remove # or &
@@ -26,32 +43,25 @@ void Server::send_to_channel(int index_client, std::string &channel, const std::
             {
                 std::cout << "      clients in this channel : " << channels[i].clients[j].nickName << std::endl;
                 std::cout << "        file descriptors " << channels[i].clients[j].fd_client << std::endl;
-
-                // if(channels[i].clients[j].fd_client == fd_server)
-                // {
-                //     std::cout << "Skipping server fd" << std::endl;
-                //     continue;
-                // }
-                std::cout <<" " << clients[index_client].nickName <<"         Sending to client: " << channels[i].clients[j].nickName << " message: " << message << std::endl;
-                send_log(channels[i].clients[j].fd_client, message);
+                std::cout <<"          " << clients[index_client].nickName <<" Sending to client: " << channels[i].clients[j].nickName << " message: " << message << std::endl;
+                send_to_client(channels[i].clients[j].fd_client, message);
             }
-            // break;
+            break;
         }
     }
-    // std::cout << "channel found? " << (found ? "yes" : "no") << std::endl;
-    // if (!found)
-    // {
-    //     send_log(index_client, "404 PRIVMSG : No such channel\r\n");
-    //     server_log(index_client, "404 PRIVMSG : No such channel");
-    // }
-    //TODO test messages to channel after akrid finishes the function join
+    std::cout << "channel found? " << (found ? "yes" : "no") << std::endl;
+    if (!found)
+    {
+        send_log(index_client, "PRIVMSG : No such channel\r\n");
+        server_log(index_client, "PRIVMSG : No such channel");
+    }
 }
 
 void Server::privmsg(int index_client, std::vector<std::string> cmd_args)
 {
 	if (cmd_args.size() < 3)
     {
-        send_log(index_client, "461 PRIVMSG : invalid args : <PRIVMSG> <recipient> <message>\r\n");
+        send_log(index_client, "PRIVMSG : invalid args : <PRIVMSG> <recipient> <message>\r\n");
         server_log(index_client, "PRIVMSG : invalid args");
         return;
     }

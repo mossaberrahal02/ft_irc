@@ -188,7 +188,7 @@ void    Server::server_log(int index_client, std::string log)
 
 void    Server::send_log(int index_client, std::string log)
 {
-    std::cout << "sending to <" << clients[index_client].fd_client << "> : " << " nickname : " << clients[index_client].nickName << " " << std::endl;
+    std::cout << "sending to fd = <" << clients[index_client].fd_client << "> : " << " nickname : " << clients[index_client].nickName << " " << std::endl;
 	int ret = send(clients[index_client].fd_client, log.c_str(), log.size(), 0);
     if (ret == -1)
     {
