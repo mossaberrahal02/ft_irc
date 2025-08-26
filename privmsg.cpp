@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include <iostream>
 
 int Server::get_client_index_by_nick(const std::string &nick)
 {
@@ -12,23 +13,37 @@ int Server::get_client_index_by_nick(const std::string &nick)
 
 void Server::send_to_channel(int index_client, std::string &channel, const std::string &message)
 {
-    std::string chan_name = channel.substr(1); // remove # or &
+    // std::string chan_name = channel.substr(1); // remove # or &
     bool found = false;
     for (size_t i = 0; i < channels.size(); i++)
     {
-        if (channels[i].name == chan_name)
+        std::cout << "Checking channel: " << channels[i].name  << " received: " << channel << std::endl;
+        if (channels[i].name == channel)
         {
+            std::cout << "Channel name : " << channels[i].name << std::endl;
             found = true;
             for (size_t j = 0; j < channels[i].clients.size(); j++)
+            {
+                std::cout << "      clients in this channel : " << channels[i].clients[j].nickName << std::endl;
+                std::cout << "        file descriptors " << channels[i].clients[j].fd_client << std::endl;
+
+                // if(channels[i].clients[j].fd_client == fd_server)
+                // {
+                //     std::cout << "Skipping server fd" << std::endl;
+                //     continue;
+                // }
+                std::cout <<" " << clients[index_client].nickName <<"         Sending to client: " << channels[i].clients[j].nickName << " message: " << message << std::endl;
                 send_log(channels[i].clients[j].fd_client, message);
-            break;
+            }
+            // break;
         }
     }
-    if (!found)
-    {
-        send_log(index_client, "404 PRIVMSG : No such channel\r\n");
-        server_log(index_client, "404 PRIVMSG : No such channel");
-    }
+    // std::cout << "channel found? " << (found ? "yes" : "no") << std::endl;
+    // if (!found)
+    // {
+    //     send_log(index_client, "404 PRIVMSG : No such channel\r\n");
+    //     server_log(index_client, "404 PRIVMSG : No such channel");
+    // }
     //TODO test messages to channel after akrid finishes the function join
 }
 

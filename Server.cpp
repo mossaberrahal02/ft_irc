@@ -32,23 +32,22 @@ Server::Server(int ac, char **av)
     }
     valid_args(av);
 	memset(&addr_server, 0, sizeof(addr_server));
-    fd_server = socket(AF_INET, SOCK_STREAM, 0);
-    fd_server = socket(AF_INET, SOCK_STREAM, 0);
+    fd_server = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
     if (fd_server < 0)
     {
         std::cerr << "can't create socket" << std::endl;
         exit(EXIT_FAILURE);
     }
-    if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
-    {
-        std::cerr << "can't set server non blocking" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
-    {
-        std::cerr << "can't set server non blocking" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    // if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
+    // {
+    //     std::cerr << "can't set server non blocking" << std::endl;
+    //     exit(EXIT_FAILURE);
+    // }
+    // if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
+    // {
+    //     std::cerr << "can't set server non blocking" << std::endl;
+    //     exit(EXIT_FAILURE);
+    // }
 
     if (setsockopt(fd_server, SOL_SOCKET, SO_REUSEADDR, &en, sizeof(en)) == -1)
     {
@@ -126,18 +125,18 @@ void        Server::new_connection()
         std::cerr << "can't accept new client" << std::endl;
         return;
     }
-    if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
-    {
-        std::cerr << "can't set client non blocking" << std::endl;
-        close(client.fd_client);
-        return;
-    }
-    if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
-    {
-        std::cerr << "can't set client non blocking" << std::endl;
-        close(client.fd_client);
-        return;
-    }
+    // if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
+    // {
+    //     std::cerr << "can't set client non blocking" << std::endl;
+    //     close(client.fd_client);
+    //     return;
+    // }
+    // if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
+    // {
+    //     std::cerr << "can't set client non blocking" << std::endl;
+    //     close(client.fd_client);
+    //     return;
+    // }
     new_cli.fd = client.fd_client;
     new_cli.events = POLLIN;
     new_cli.revents = 0;
@@ -189,8 +188,11 @@ void    Server::server_log(int index_client, std::string log)
 
 void    Server::send_log(int index_client, std::string log)
 {
-	if (send(clients[index_client].fd_client, log.c_str(), log.size(), 0) == -1)
+    std::cout << "sending to <" << clients[index_client].fd_client << "> : " << " nickname : " << clients[index_client].nickName << " " << std::endl;
+	int ret = send(clients[index_client].fd_client, log.c_str(), log.size(), 0);
+    if (ret == -1)
     {
+        std::cout << "i could'nt send to <" << clients[index_client].fd_client << "> : " << " nickname : " << clients[index_client].nickName << " " << std::endl;
         std::cerr << "send error" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -318,13 +320,6 @@ void    Server::quit(int index_client)
 }
 
 
-void    Server::privmsg(int index_client, std::vector <std::string> cmd_args)
-{
-    (void)cmd_args;
-    send_log(index_client, "inside PRIVMSG\r\n");
-}
-
-
 int    userFound(std::vector<Client> &clients, std::string nickname)
 {
     for (size_t i = 0; i < clients.size(); i ++)
@@ -385,10 +380,10 @@ void    Server::invite(int index_client, std::vector <std::string> cmd_args)
     send_log(index_client, "INVITE : you invite @" + nickname + " to " + channel_name +"\r\n");
     send_log(index_invited, "@" + clients[index_client].nickName + " invite you to " + channel_name + "\r\n");
     server_log(index_client, "INVITE : invite @" + nickname + " to " + channel_name);
-    std::string nickname;
-    std::string channel_name;
-    int         index_channel = -1;
-    int         index_invited = -1;
+    // std::string nickname;
+    // std::string channel_name;
+    // int         index_channel = -1;
+    // int         index_invited = -1;
 
     if (cmd_args.size() != 3)
     {

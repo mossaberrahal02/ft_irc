@@ -2,11 +2,11 @@ NAME = ircserv
 
 SRC = main.cpp Server.cpp Client.cpp Channel.cpp join.cpp privmsg.cpp
 
-OBJ = main.o Server.o Client.o Channel.o join.o
+OBJ = main.o Server.o Client.o Channel.o join.o privmsg.o
 
 CXX = c++
 
-CXXFLAGS = -Wextra -Werror -Wall -std=c++98 
+CXXFLAGS = -Wextra  -Wall -std=c++98 #-Werror
 
 $(NAME) : $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJ)
