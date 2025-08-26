@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include <cstddef>
 #include <iostream>
 
 int Server::get_client_index_by_nick(const std::string &nick)
@@ -11,18 +12,25 @@ int Server::get_client_index_by_nick(const std::string &nick)
     return -1;
 }
 
-Client *get_client_by_fd()
+Client *Server::get_client_by_fd(int fd)
 {
-    
+    for (size_t i = 0; i < clients.size(); i++)
+    {
+        if (clients[i].fd_client == fd)
+            return &clients[i];
+    }
+    return NULL;
 }
 
 void    Server::send_to_client(int fd, std::string log)
 {
-    std::cout << "sending to fd = <" << send_to_client << "> : " << " nickname : " << clients[index_client].nickName << " " << std::endl;
-	int ret = send(clients[index_client].fd_client, log.c_str(), log.size(), 0);
+    if(get_client_by_fd(fd) == NULL)
+        return;
+    std::cout << "sending to fd = <" << fd << "> : " << " nickname : " << get_client_by_fd(fd)->nickName << " " << std::endl;
+	int ret = send(get_client_by_fd(fd)->fd_client, log.c_str(), log.size(), 0);
     if (ret == -1)
     {
-        std::cout << "i could'nt send to <" << clients[index_client].fd_client << "> : " << " nickname : " << clients[index_client].nickName << " " << std::endl;
+        std::cout << "i could'nt send to <" << get_client_by_fd(fd)->fd_client << "> : " << " nickname : " << get_client_by_fd(fd)->nickName << " " << std::endl;
         std::cerr << "send error" << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -30,31 +38,32 @@ void    Server::send_to_client(int fd, std::string log)
 
 void Server::send_to_channel(int index_client, std::string &channel, const std::string &message)
 {
-    // std::string chan_name = channel.substr(1); // remove # or &
-    bool found = false;
+    std::cout << "Sending to channel: " << channel << " message: " << message << std::endl;
     for (size_t i = 0; i < channels.size(); i++)
     {
-        std::cout << "Checking channel: " << channels[i].name  << " received: " << channel << std::endl;
         if (channels[i].name == channel)
         {
-            std::cout << "Channel name : " << channels[i].name << std::endl;
-            found = true;
             for (size_t j = 0; j < channels[i].clients.size(); j++)
             {
-                std::cout << "      clients in this channel : " << channels[i].clients[j].nickName << std::endl;
-                std::cout << "        file descriptors " << channels[i].clients[j].fd_client << std::endl;
-                std::cout <<"          " << clients[index_client].nickName <<" Sending to client: " << channels[i].clients[j].nickName << " message: " << message << std::endl;
-                send_to_client(channels[i].clients[j].fd_client, message);
+                if (channels[i].clients[j].fd_client != clients[index_client].fd_client)
+                {
+                    std::cout << "Sending to channel client: " << channels[i].clients[j].nickName << " fd: " << channels[i].clients[j].fd_client << " message: " << message << std::endl;
+                    send_to_client(channels[i].clients[j].fd_client, message);
+                }
             }
-            break;
+            for (size_t j = 0; j < channels[i].admins.size(); j++)
+            {
+                if (channels[i].admins[j].fd_client != clients[index_client].fd_client)
+                {
+                    std::cout << "Sending to channel admin: " << channels[i].admins[j].nickName << " fd: " << channels[i].admins[j].fd_client << " message: " << message << std::endl;
+                    send_to_client(channels[i].admins[j].fd_client, message);
+                }
+            }
+            return;
         }
     }
-    std::cout << "channel found? " << (found ? "yes" : "no") << std::endl;
-    if (!found)
-    {
-        send_log(index_client, "PRIVMSG : No such channel\r\n");
-        server_log(index_client, "PRIVMSG : No such channel");
-    }
+    send_to_client(index_client, "PRIVMSG : No such channel\r\n");
+    server_log(index_client, "PRIVMSG : No such channel");
 }
 
 void Server::privmsg(int index_client, std::vector<std::string> cmd_args)
