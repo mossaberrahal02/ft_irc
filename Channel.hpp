@@ -19,5 +19,6 @@ public:
 	std::vector<int>	invited;
 	Channel();
 	~Channel();
-};
+	bool	removeClient(int fd_client);
 
+};

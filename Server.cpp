@@ -196,13 +196,6 @@ void    Server::send_log(int index_client, std::string log)
     }
 }
 
-void    Server::privmsg(int index_client, std::vector <std::string> cmd_args)
-{
-    (void)cmd_args;
-    send_log(index_client, "inside PRIVMSG\r\n");
-}
-
-
 int    userFound(std::vector<Client> &clients, std::string nickname)
 {
     for (size_t i = 0; i < clients.size(); i ++)
@@ -212,7 +205,7 @@ int    userFound(std::vector<Client> &clients, std::string nickname)
 }
 
 
-int    channelFound(std::vector<Channel> &channels, std::string channel_name)
+int    Server::channelFound(std::vector<Channel> &channels, std::string channel_name)
 {
     for (size_t i = 0; i < channels.size(); i ++)
         if (channels[i].name == channel_name)
@@ -265,107 +258,90 @@ void    Server::invite(int index_client, std::vector <std::string> cmd_args)
     server_log(index_client, "INVITE : invite @" + nickname + " to " + channel_name);
 }
 
-void    Server::kick(int index_client, std::vector <std::string> cmd_args)
+
+void Server::removeFromChannel(const std::string &channel_name, int fd_client, std::vector<Channel> &channels)
 {
-    (void)cmd_args;
-    send_log(index_client, "inside KICK\r\n");
-}
-
-
-void Server::show_topic(int index_client, const std::string &channel_name)
-{
-    int index_channel = channelFound(channels, channel_name);
-    if (index_channel == -1)
+    for (size_t i = 0; i < channels.size(); i++)
     {
-        send_log(index_client, "TOPIC : " + channel_name + " :No such channel\r\n");
-        server_log(index_client, "TOPIC : No such channel");
-        return;
-    }
-
-    if (!isExistInChannel(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins))
-    {
-        send_log(index_client, "TOPIC : " + channel_name + " :You're not on that channel\r\n");
-        server_log(index_client, "TOPIC : You're not on that channel");
-        return;
-    }
-
-    if (channels[index_channel].topic_name.empty())
-    {
-        send_log(index_client,"TOPIC : " +  channel_name + " :No topic is set\r\n");
-        server_log(index_client, "TOPIC :No topic is set");
-    }
-    else
-    {
-        send_log(index_client,"TOPIC : " +  channel_name + " :" + channels[index_channel].topic_name + "\r\n");
-        server_log(index_client, "TOPIC : " +  channel_name + " :" + channels[index_channel].topic_name);
-    }
-}
-
-
-bool    isOperator(int fd_client, std::vector<Client> &admins)
-{
-    for (size_t i = 0; i < admins.size(); i++)
-	{
-		if (fd_client == admins[i].fd_client)
-			return true;
-	}
-    return false;
-}
-
-void Server::edit_topic(int index_client, const std::string &channel_name, const std::string &new_topic)
-{
-    int index_channel = channelFound(channels, channel_name);
-    if (index_channel == -1)
-    {
-        send_log(index_client, "TOPIC :" + channel_name + " : No such channel\r\n");
-        server_log(index_client, "TOPIC : No such channel");
-        return;
-    }
-
-    if (!isExistInChannel(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins))
-    {
-        send_log(index_client, "TOPIC :" + channel_name + " :You're not on that channel\r\n");
-        server_log(index_client, "TOPIC : You're not on that channel");
-        return;
-    }
-    if(channels[index_channel].topic_restriction && !isOperator(clients[index_client].fd_client, channels[index_channel].admins))
-    {
-        send_log(index_client, "TOPIC : You're not operator\r\n");
-        server_log(index_client, "TOPIC : You're not operator");
-        return;
-    }
-    channels[index_channel].topic_name = new_topic;
-
-    sendToAll(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins,
-        channels[index_channel].name + " : @" + clients[index_client].nickName + " set topic to :" + new_topic + "\r\n");
-    send_log(index_client, "TOPIC : " + channels[index_channel].name + " : you set topic to :" + new_topic + "\r\n");
-    server_log(index_client, "TOPIC : " + channels[index_channel].name + " : set topic to :" + new_topic);
-}
-
-void Server::topic(int index_client, std::vector<std::string> cmd_args)
-{
-    if (cmd_args.size() == 2)
-        show_topic(index_client, cmd_args[1]);
-    else if (cmd_args.size() >= 3)
-    {
-        std::string new_topic;
-        for (size_t i = 2; i < cmd_args.size(); i++)
+        if (channels[i].name == channel_name)
         {
-            if (i > 2) new_topic += " ";
-            new_topic += cmd_args[i];
+            if (channels[i].removeClient(fd_client))
+            {
+                std::cout << "RM :<" << fd_client << "> Removed from channel: " + channel_name << std::endl;
+                if (channels[i].clients.empty() && channels[i].admins.empty())
+                {
+                    std::cout << "Channel " << channel_name << " is empty, deleting it." << std::endl;
+                    channels.erase(channels.begin() + i);
+                }
+            }
+            return;
         }
-
-        if (!new_topic.empty() && new_topic[0] == ':')
-            new_topic = new_topic.substr(1);
-
-        edit_topic(index_client, cmd_args[1], new_topic);
-    }
-    else
-    {
-        send_log(index_client, "TOPIC :Invalid parameters\r\n");
-        server_log(index_client, "TOPIC :Invalid parameters.");
     }
 }
+
+void    Server::removeFromChannels(int fd_client, std::vector<Channel> &channels)
+{
+    for (size_t i = 0; i < channels.size(); i++)
+    {
+        if (channels[i].removeClient(fd_client))
+        {
+            std::cout << "RM :<" << fd_client << "> Removed from channel: " + channels[i].name << std::endl;
+            if (channels[i].clients.empty() && channels[i].admins.empty())
+            {
+                std::cout << "Channel " << channels[i].name << " is empty, deleting it." << std::endl;
+                channels.erase(channels.begin() + i);
+                i--;
+            }
+        }
+    }
+}
+
+void Server::kick(int index_client, std::vector<std::string> cmd_args)
+{
+    if (cmd_args.size() != 3)
+    {
+        send_log(index_client, "KICK : Invalid parameters\r\n");
+        server_log(index_client, "KICK : Invalid parameters");
+        return;
+    }
+
+    std::string channel_name = cmd_args[1];
+    std::string user_kicked  = cmd_args[2];
+
+    int index_channel = channelFound(channels, channel_name);
+    int index_kicked  = userFound(clients, user_kicked);
+    if (index_channel == -1)
+    {
+        send_log(index_client, "KICK : No such channel\r\n");
+        server_log(index_client, "KICK : No such channel");
+        return;
+    }
+    if (!isExistInChannel(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins))
+    {
+        send_log(index_client, "KICK : You're not on that channel\r\n");
+        server_log(index_client, "KICK : You're not on that channel");
+        return;
+    }
+    if (!isOperator(clients[index_client].fd_client, channels[index_channel].admins))
+    {
+        send_log(index_client, "KICK  : You are not operator\r\n");
+        server_log(index_client, "KICK : You are not operator");
+        return; 
+    }
+    if (index_kicked == -1 || !isExistInChannel(clients[index_kicked].fd_client, channels[index_kicked].clients, channels[index_kicked].admins))
+    {
+        send_log(index_client, "KICK : No such user\r\n");
+        server_log(index_client, "KICK : No such user");
+        return;
+    }
+    removeFromChannel(channel_name, clients[index_kicked].fd_client, channels);
+
+    std::string msg = "@" + clients[index_client].nickName + " Kiked @" + user_kicked + " from " + channel_name + "\r\n";
+    sendToAll(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins, msg);
+    send_log(index_kicked, ":You were kicked from " + channel_name + "\r\n");
+    send_log(index_client, "Kick : you Kicked @" + user_kicked + " from " + channel_name + "\r\n");
+}
+
 
 void    Server::mode(int index_client, std::vector <std::string> cmd_args)
 {
@@ -377,8 +353,8 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
 {
     if (cmd_args[0] == "QUIT")
         return quit(index_client);
-    else if (cmd_args[0] == "PRVIMSG")
-        return privmsg(index_client, cmd_args);
+    // else if (cmd_args[0] == "PRVIMSG")
+    //     return privmsg(index_client, cmd_args);
     else if (cmd_args[0] == "JOIN")
         return join(index_client, cmd_args);
     else if (cmd_args[0] == "INVITE")

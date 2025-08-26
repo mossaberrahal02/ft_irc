@@ -31,6 +31,10 @@ public:
 	void		    clear_disconnected();
 	void    		server_log(int index_client, std::string log);
 	void		    send_log(int index_client, std::string log);
+	void    		removeFromChannel(const std::string &channel_name, int fd_client, std::vector<Channel> &channels);
+	void    		removeFromChannels(int fd_client, std::vector<Channel> &channels);
+	bool    		isOperator(int fd_client, std::vector<Client> &admins);
+	int				channelFound(std::vector<Channel> &channels, std::string channel_name);
 	void			show_topic(int index_client, const std::string &channel_name);
 	void 			edit_topic(int index_client, const std::string &channel_name, const std::string &new_topic);
 	bool			isExistInChannel(int fd_client, std::vector<Client> &channel_clients, std::vector<Client> &admins);
@@ -41,7 +45,7 @@ public:
 	void    		pass(int index_client, std::vector <std::string> cmd_args);
 	void    		nick(int index_client, std::vector <std::string> cmd_args);
 	void    		user(int index_client, std::vector <std::string> cmd_args);
-	void    		privmsg(int index_client, std::vector <std::string> cmd_args);
+	// void    		privmsg(int index_client, std::vector <std::string> cmd_args);
 	void    		join(int index_client, std::vector <std::string> cmd_args);
 	void    		invite(int index_client, std::vector <std::string> cmd_args);
 	void    		kick(int index_client, std::vector <std::string> cmd_args);

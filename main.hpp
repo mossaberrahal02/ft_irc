@@ -15,3 +15,9 @@
 // 	std::vector <Client>	clients;
 // 	std::vector <Channel>	channels;
 // } t_env;
+
+// PASS 0000
+// NICK akrid
+// USER akrid 0 0 0
+
+
