@@ -30,7 +30,7 @@ void	Server::sendToAll(int fd_client, std::vector<Client> &clients, std::vector<
 			send(admins[i].fd_client, log.c_str(), log.size(), 0);
 	for (size_t i = 0; i < clients.size(); i++)
 		if (clients[i].fd_client != fd_client)
-			send(admins[i].fd_client, log.c_str(), log.size(), 0);
+			send(clients[i].fd_client, log.c_str(), log.size(), 0);
 }
 
 void	Server::join_channel(int index_client, int index_channel, std::string passkey)
@@ -104,6 +104,7 @@ void	Server::create_channel(int index_client, std::string new_channel, std::stri
 	n_channel.name = new_channel;
 	n_channel.admins.push_back(clients[index_client]);
 	channels.push_back(n_channel);
+	clients[index_client].max_channel ++;
 	send_log(index_client, "JOIN : Channel " + new_channel + " created\r\n");
 	server_log(index_client, "create channel " + new_channel);
 }

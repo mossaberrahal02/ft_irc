@@ -28,8 +28,11 @@ public:
 	struct pollfd				new_cli;
 	Server(int ac, char **av);
 	~Server();
+	void		    clear_disconnected();
 	void    		server_log(int index_client, std::string log);
 	void		    send_log(int index_client, std::string log);
+	void			show_topic(int index_client, const std::string &channel_name);
+	void 			edit_topic(int index_client, const std::string &channel_name, const std::string &new_topic);
 	bool			isExistInChannel(int fd_client, std::vector<Client> &channel_clients, std::vector<Client> &admins);
 	void			sendToAll(int fd_client, std::vector<Client> &clients, std::vector<Client> &admins, std::string log);
 	void			join_channel(int index_client, int index_channel, std::string passkey);

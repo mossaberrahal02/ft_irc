@@ -6,14 +6,6 @@ int main(int ac, char** av)
 {
     Server  server(ac, av);
 
-    try
-    {
-        server.loop();
-    }
-    catch(const std::exception& e)
-    {
-        std::cerr << e.what() << '\n';
-    }
-    
+    server.loop();
     return 0;
 }

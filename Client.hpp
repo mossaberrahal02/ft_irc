@@ -20,6 +20,7 @@ public:
 	std::string 		nickName;
 	std::string			ipAddr;
 	int					max_channel;
+	bool				disconnected;
 	Client(int fd);
 	~Client();
 };
