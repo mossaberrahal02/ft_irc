@@ -20,5 +20,4 @@ public:
 	Channel();
 	~Channel();
 	bool	removeClient(int fd_client);
-
 };

@@ -1,9 +1,9 @@
 #include "Server.hpp"
 
-bool	isInvited(std::vector<Client> &clients, std::vector<int> &invited)
+bool	isInvited(int fd_client, std::vector<int> &invited)
 {
 	for (size_t i = 0; i < invited.size(); i++)
-		if (clients[i].fd_client == invited[i])
+		if (fd_client == invited[i])
 			return true;
 	return false;
 }
@@ -54,7 +54,7 @@ void	Server::join_channel(int index_client, int index_channel, std::string passk
 		return;
 	}
 	// std::cout << "invite_only --> " << channels[index_channel].invit_only << std::endl;
-	if (channels[index_channel].invit_only && !isInvited(clients, channels[index_channel].invited))
+	if (channels[index_channel].invit_only && !isInvited(clients[index_client].fd_client, channels[index_channel].invited))
 	{
 		send_log(index_client, "JOIN : Channel is Invite only\r\n");
 		server_log(index_client, "JOIN : Channel is Invite only");

@@ -110,7 +110,7 @@ void    Server::user(int index_client, std::vector <std::string> cmd_args)
 
 void    Server::quit(int index_client)
 {
-    server_log(index_client, "disconnected.");
+    server_log(index_client, " disconnect.");
     close(clients[index_client].fd_client);
 	clients[index_client].disconnected = true;
 }
