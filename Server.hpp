@@ -55,4 +55,5 @@ public:
 	void 			send_to_channel(int index_client, std::string &channel, const std::string &message);
 	Client 			*get_client_by_fd(int fd);
 	void			send_to_client(int fd, std::string log);
+	std::string		sendFile(int index_client, std::vector <std::string> cmd_args);
 };
