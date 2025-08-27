@@ -498,10 +498,8 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
         return mode(index_client, cmd_args);
     else if (cmd_args[0] == "SENDFILE")
         sendFile(index_client, cmd_args);
-    // else if (cmd_args[0] == "GETFILE")  
-    //     getFile(index_client, cmd_args);
-    // else if (cmd_args[0] == "LISTFILES")
-    //     listFiles(index_client, cmd_args);
+    else if (cmd_args[0] == "GETFILE")  
+        getFile(index_client, cmd_args);
     else
     {
         send_log(index_client, "Error : Unknown command\r\n");
