@@ -59,4 +59,6 @@ public:
 	void    send_to_client(int fd, std::string log);
 	void    sendFile(int index_client, std::vector <std::string> cmd_args);
 	void    getFile(int index_client, std::vector<std::string> cmd_args);
+	void    bot(int index_client, std::vector<std::string> cmd_args);
+	void	Help();
 };
