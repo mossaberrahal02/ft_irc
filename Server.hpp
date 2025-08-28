@@ -12,6 +12,9 @@
 #include <fcntl.h>
 #include "Client.hpp"
 #include "Channel.hpp"
+#include "file.hpp"
+
+#include <map>
 #define MAX_BUFF 1024
 
 class Server
@@ -26,6 +29,8 @@ public:
 	std::vector <Channel>		channels;
 	std::vector <struct pollfd>	fds;
 	struct pollfd				new_cli;
+	std::map<std::string, File>	files;
+	std::string					serverName;
 	Server(int ac, char **av);
 	~Server();
 	void		    clear_disconnected();
@@ -55,12 +60,45 @@ public:
 	void    		send_to_client(int fd, std::string log);
 	void 			send_to_channel(int index_client, std::string &channel, const std::string &message);
 
+
+
+
+
+
+
+
+
+	void    sendFile(int index_client, std::vector <std::string> cmd_args);
+	void    getFile(int index_client, std::vector<std::string> cmd_args);
+	void    bot(int index_client, std::vector<std::string> cmd_args);
+	void    Help(int index_client);
+	void	serverInfo(int index_client) ;
+	void	channelInfo(int index_client, std::string ChannelName);
+	void	listAllChannels(int index_client);
+	void 	getUserInfo(int index_client);
+	void 	onlineUsers(int index_client);
+	void 	getUserInfo(int target, int index_client);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	void    		quit(int index_client);
 	void    		pass(int index_client, std::vector <std::string> cmd_args);
 	void    		nick(int index_client, std::vector <std::string> cmd_args);
 	void    		user(int index_client, std::vector <std::string> cmd_args);
 	void    		privmsg(int index_client, std::vector <std::string> cmd_args);
 	void    		join(int index_client, std::vector <std::string> cmd_args);
+	void			part(int index_client, std::vector<std::string> cmd_args);
 	void    		invite(int index_client, std::vector <std::string> cmd_args);
 	void    		kick(int index_client, std::vector <std::string> cmd_args);
 	void    		topic(int index_client, std::vector <std::string> cmd_args);

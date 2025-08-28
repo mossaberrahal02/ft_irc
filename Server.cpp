@@ -61,6 +61,7 @@ Server::Server(int ac, char **av)
         close(fd_server);
         exit(EXIT_FAILURE);
     }
+    serverName = "ft_irc_server";
     new_cli.fd = fd_server;
     new_cli.events = POLLIN;
     new_cli.revents = 0;
@@ -199,6 +200,8 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
         return privmsg(index_client, cmd_args);
     else if (cmd_args[0] == "JOIN")
         return join(index_client, cmd_args);
+    else if (cmd_args[0] == "PART")
+        return part(index_client, cmd_args);
     else if (cmd_args[0] == "INVITE")
         return invite(index_client, cmd_args);
     else if (cmd_args[0] == "KICK")
@@ -207,6 +210,12 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
         return topic(index_client, cmd_args);
     else if (cmd_args[0] == "MODE")
         return mode(index_client, cmd_args);
+    else if (cmd_args[0] == "SENDFILE")
+        sendFile(index_client, cmd_args);
+    else if (cmd_args[0] == "GETFILEEE")  
+        getFile(index_client, cmd_args);
+    else if (cmd_args[0] == "BOT")
+        bot(index_client, cmd_args);
     else
     {
         send_log(index_client, "Error : Unknown command\r\n");

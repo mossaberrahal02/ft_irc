@@ -42,7 +42,7 @@ void Server::send_to_channel(int index_client, std::string &channel, const std::
         {
             if (!isExistInChannel(clients[index_client].fd_client, channels[i].clients, channels[i].admins))
             {
-                send_log(index_client, "PRIVMSG : You're not on that channel\r\n");
+                send_to_client(clients[index_client].fd_client, "PRIVMSG : You're not on that channel\r\n");
                 server_log(index_client, "PRIVMSG : Not on that channel");
                 return;
             }
@@ -65,7 +65,7 @@ void Server::send_to_channel(int index_client, std::string &channel, const std::
             return;
         }
     }
-    send_to_client(index_client, "PRIVMSG : No such channel\r\n");
+    send_to_client(clients[index_client].fd_client, "PRIVMSG : No such channel\r\n");
     server_log(index_client, "PRIVMSG : No such channel");
 }
 
