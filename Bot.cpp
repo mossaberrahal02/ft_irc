@@ -36,7 +36,7 @@ void Server::bot(int index_client, std::vector<std::string> cmd_args)
         int target = get_client_index_by_nick(cmd_args[2]);
         if (target == -1)
             return send_to_client(clients[index_client].fd_client, "No such user\r\n"), server_log(index_client, "No such user\r\n");
-        return getUserInfo(target);
+        return getUserInfo(target, index_client);
     }
     else if (option == "1")
         return onlineUsers(index_client);
@@ -51,11 +51,11 @@ void Server::bot(int index_client, std::vector<std::string> cmd_args)
 	server_log(index_client, "Invalid BOT usage\r\n");
 }
 
-void Server::getUserInfo(int index_client)
+void Server::getUserInfo(int target, int index_client)
 {
 	for (unsigned int i = 0; i < this->clients.size(); i++)
 	{
-		if (this->clients[i].nickName == this->clients[index_client].nickName)
+		if (this->clients[i].nickName == this->clients[target].nickName)
 		{
 			std::string userInfo;
 			userInfo.append("User Info:\r\n");
