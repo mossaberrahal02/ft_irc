@@ -67,4 +67,5 @@ public:
 	void	listAllChannels(int index_client);
 	void 	getUserInfo(int index_client);
 	void 	onlineUsers(int index_client);
+	void 	getUserInfo(int target, int index_client);
 };

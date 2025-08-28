@@ -39,16 +39,6 @@ Server::Server(int ac, char **av)
         std::cerr << "can't create socket" << std::endl;
         exit(EXIT_FAILURE);
     }
-    // if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
-    // {
-    //     std::cerr << "can't set server non blocking" << std::endl;
-    //     exit(EXIT_FAILURE);
-    // }
-    // if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
-    // {
-    //     std::cerr << "can't set server non blocking" << std::endl;
-    //     exit(EXIT_FAILURE);
-    // }
 
     if (setsockopt(fd_server, SOL_SOCKET, SO_REUSEADDR, &en, sizeof(en)) == -1)
     {
@@ -127,18 +117,7 @@ void        Server::new_connection()
         std::cerr << "can't accept new client" << std::endl;
         return;
     }
-    // if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
-    // {
-    //     std::cerr << "can't set client non blocking" << std::endl;
-    //     close(client.fd_client);
-    //     return;
-    // }
-    // if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
-    // {
-    //     std::cerr << "can't set client non blocking" << std::endl;
-    //     close(client.fd_client);
-    //     return;
-    // }
+
     new_cli.fd = client.fd_client;
     new_cli.events = POLLIN;
     new_cli.revents = 0;
@@ -151,7 +130,6 @@ void        Server::new_connection()
     std::string welcome = "<fd = " + ss.str() + "> Welcome to the server!\nPlease Register yourself on our server!\r\n";
     send(client.fd_client, welcome.c_str(), welcome.size(), 0);
 }
-
 
 void        Server::process_client_data(int fd)
 {
@@ -166,8 +144,6 @@ void        Server::process_client_data(int fd)
         return;
     }
     clients[cli_indx].buffer.append(buffer, buff_readed);
-    // std::cout << "<" << clients[cli_indx].buffer <<">" << std::endl;
-    // std::cout << "<" << clients[cli_indx].buffer <<">" << std::endl;
     while ((pos = clients[cli_indx].buffer.find_first_of("\r\n")) != std::string::npos)
     {
         process_command(cli_indx, clients[cli_indx].buffer.substr(0, pos));
@@ -499,7 +475,7 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
         return mode(index_client, cmd_args);
     else if (cmd_args[0] == "SENDFILE")
         sendFile(index_client, cmd_args);
-    else if (cmd_args[0] == "GETFILE")  
+    else if (cmd_args[0] == "GETFILEEE")  
         getFile(index_client, cmd_args);
     else if (cmd_args[0] == "BOT")
         bot(index_client, cmd_args);
