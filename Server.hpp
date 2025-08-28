@@ -29,6 +29,7 @@ public:
 	struct pollfd				new_cli;
 	Server(int ac, char **av);
 	std::map<std::string, File>	files;
+	std::string					serverName;
 	~Server();
 	void    server_log(int index_client, std::string log);
 	void    send_log(int index_client, std::string log);
@@ -60,5 +61,10 @@ public:
 	void    sendFile(int index_client, std::vector <std::string> cmd_args);
 	void    getFile(int index_client, std::vector<std::string> cmd_args);
 	void    bot(int index_client, std::vector<std::string> cmd_args);
-	void	Help();
+	void    Help(int index_client);
+	void	serverInfo(int index_client) ;
+	void	channelInfo(int index_client, std::string ChannelName);
+	void	listAllChannels(int index_client);
+	void 	getUserInfo(int index_client);
+	void 	onlineUsers(int index_client);
 };

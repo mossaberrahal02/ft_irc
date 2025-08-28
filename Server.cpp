@@ -73,6 +73,7 @@ Server::Server(int ac, char **av)
         close(fd_server);
         exit(EXIT_FAILURE);
     }
+    serverName = "ft_irc_server";
     new_cli.fd = fd_server;
     new_cli.events = POLLIN;
     new_cli.revents = 0;
