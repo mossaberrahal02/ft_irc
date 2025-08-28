@@ -31,7 +31,7 @@ void    Server::removeFromChannels(int index_client, std::vector<Channel> &chann
     {
         if (channels[i].removeClient(clients[index_client].fd_client))
         {
-			std::string msg = "@" + clients[index_client].nickName + " disconnect from " + channels[i].name + "\r\n";
+			std::string msg = " @" + clients[index_client].nickName + " disconnect from " + channels[i].name + "\r\n";
 			sendToAll(clients[index_client].fd_client, channels[i].clients, channels[i].admins, msg);
             std::cout << "client <" << clients[index_client].fd_client << "> : Removed from channel: " + channels[i].name << std::endl;
             if (channels[i].clients.empty() && channels[i].admins.empty())
@@ -92,6 +92,12 @@ void Server::kick(int index_client, std::vector<std::string> cmd_args)
         server_log(index_client, "KICK : You are not operator");
         return; 
     }
+    if (index_client == index_kicked)
+    {
+        send_log(index_client, "KICK  : Can't kick yourself\r\n");
+        server_log(index_client, "KICK : Can't kick yourself");
+        return;
+    }
     if (index_kicked == -1 || !isExistInChannel(clients[index_kicked].fd_client, channels[index_channel].clients, channels[index_channel].admins))
     {
         send_log(index_client, "KICK : No such user\r\n");
@@ -99,7 +105,7 @@ void Server::kick(int index_client, std::vector<std::string> cmd_args)
         return;
     }
     removeFromChannel(channel_name, clients[index_kicked].fd_client, channels);
-    std::string msg = "@" + clients[index_client].nickName + " Kiked @" + user_kicked + " from " + channel_name + "\r\n";
+    std::string msg = " @" + clients[index_client].nickName + " Kiked @" + user_kicked + " from " + channel_name + "\r\n";
     sendToAll(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins, msg);
     send_log(index_kicked, ":You were kicked from " + channel_name + "\r\n");
     send_log(index_client, "Kick : you Kicked @" + user_kicked + " from " + channel_name + "\r\n");

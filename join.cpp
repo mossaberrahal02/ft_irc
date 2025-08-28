@@ -53,7 +53,6 @@ void	Server::join_channel(int index_client, int index_channel, std::string passk
 		server_log(index_client, "JOIN : Channel Invalid key");
 		return;
 	}
-	// std::cout << "invite_only --> " << channels[index_channel].invit_only << std::endl;
 	if (channels[index_channel].invit_only && !isInvited(clients[index_client].fd_client, channels[index_channel].invited))
 	{
 		send_log(index_client, "JOIN : Channel is Invite only\r\n");
@@ -61,7 +60,7 @@ void	Server::join_channel(int index_client, int index_channel, std::string passk
 		return;
 	}
 	sendToAll(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins,
-		"@" + clients[index_client].nickName + " join " + channels[index_channel].name + "\r\n");
+		" @" + clients[index_client].nickName + " join " + channels[index_channel].name + "\r\n");
 	send_log(index_client, "JOIN : you are in channel " + channels[index_channel].name + "\r\n");
 	server_log(index_client, "JOIN : to channel " + channels[index_channel].name);
 	channels[index_channel].clients.push_back(clients[index_client]);
@@ -71,11 +70,9 @@ void	Server::join_channel(int index_client, int index_channel, std::string passk
 
 bool isValidChannelName(const std::string &new_channel)
 {
-    // Must start with '#'
     if (new_channel.size() <= 3 || new_channel[0] != '#')
         return false;
 
-    // Check allowed characters after '#'
     for (std::size_t i = 1; i < new_channel.size(); ++i) 
 	{
         char c = new_channel[i];
@@ -83,7 +80,6 @@ bool isValidChannelName(const std::string &new_channel)
             return false;
     }
 
-    // (Optional) Max length check (common IRC limit is 50)
     if (new_channel.size() > 20)
 		return false;
 
@@ -113,7 +109,6 @@ void    		Server::join(int index_client, std::vector <std::string> cmd_args)
 {
 	std::string		chan("");
 	std::string		passkey("");
-	// std::cout << "kaynin f join" << std::endl;
 	if (cmd_args.size() < 2 || cmd_args.size() > 3)
 	{
 		send_log(index_client, "JOIN : Invalid parameters\r\n");
@@ -129,11 +124,8 @@ void    		Server::join(int index_client, std::vector <std::string> cmd_args)
 	chan = cmd_args[1];
 	if (cmd_args.size() == 3)
 		passkey = cmd_args[2];
-	// std::cout << "new_channel : " << chan << std::endl;
 	for (size_t i = 0; i < channels.size(); i++)
 	{
-		// std::cout << "channel["<< i << "] : " << channels[i].name << std::endl;
-		// std::cout << "channel[i] == chan : " << (channels[i].name == chan) << std::endl;
 		if (channels[i].name == chan)
 		{
 			join_channel(index_client, i, passkey);
@@ -141,5 +133,4 @@ void    		Server::join(int index_client, std::vector <std::string> cmd_args)
 		}
 	}
 	create_channel(index_client, chan, passkey);
-	// std::cout << "khrejna mn join" << std::endl;
 }

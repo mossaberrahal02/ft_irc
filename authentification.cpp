@@ -88,7 +88,7 @@ void    Server::user(int index_client, std::vector <std::string> cmd_args)
         server_log(index_client, "USER : Already set");
         return;
     }
-    if (cmd_args.size() < 5) // USER username hostname servername realname
+    if (cmd_args.size() < 5) 
     {
         send_log(index_client, "USER : Not enough parameters\r\n");
         server_log(index_client, "USER : Not enough parameters");

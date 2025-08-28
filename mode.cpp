@@ -64,12 +64,18 @@ bool	Server::setOperator(int index_client,int index_channel, std::vector<std::st
 
 	if (cmd_args.size() <= 3)
 	{
-		send_log(index_client, "MODE +o : Need more parameters\r\n");
-		server_log(index_client, "MODE +o : Need more parameters");
+		send_log(index_client, "MODE +/-o : Need more parameters\r\n");
+		server_log(index_client, "MODE +/-o : Need more parameters");
 		return false;
 	}
 	targetNick = cmd_args[3];
 	index_target = userFound(clients, targetNick);
+	if(index_client == index_target)
+	{
+		send_log(index_client, "MODE : Can't edit yourself\r\n");
+		server_log(index_client, "MODE : Can't edit yourself");
+		return false;
+	}
 	if (index_target == -1 
 		|| !isExistInChannel(clients[index_target].fd_client, channels[index_channel].clients, channels[index_channel].admins))
 	{

@@ -58,6 +58,6 @@ void    Server::invite(int index_client, std::vector <std::string> cmd_args)
     sendToAll(clients[index_client].fd_client, channels[index_channel].clients, channels[index_channel].admins,
         "INVITE : @" + clients[index_client].nickName + " invite @" + nickname + " to " + channel_name + "\r\n");
     send_log(index_client, "INVITE : you invite @" + nickname + " to " + channel_name +"\r\n");
-    send_log(index_invited, "@" + clients[index_client].nickName + " invite you to " + channel_name + "\r\n");
+    send_log(index_invited, " @" + clients[index_client].nickName + " invite you to " + channel_name + "\r\n");
     server_log(index_client, "invite @" + nickname + " to " + channel_name);
 }

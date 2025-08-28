@@ -32,6 +32,7 @@ public:
 	void    		server_log(int index_client, std::string log);
 	void		    send_log(int index_client, std::string log);
 	void			sendToAll(int fd_client, std::vector<Client> &clients, std::vector<Client> &admins, std::string log);
+
 	void    		removeFromChannel(const std::string &channel_name, int fd_client, std::vector<Channel> &channels);
 	void    		removeFromChannels(int index_client, std::vector<Channel> &channels);
 	void    		addChannelOperator(int index_target, Channel &channel, Client client);
@@ -49,11 +50,16 @@ public:
 	bool			isExistInChannel(int fd_client, std::vector<Client> &channel_clients, std::vector<Client> &admins);
 	void			join_channel(int index_client, int index_channel, std::string passkey);
 	void			create_channel(int index_client, std::string new_channel, std::string passkey);
+	int 			get_client_index_by_nick(const std::string &nick);
+	Client*			get_client_by_fd(int fd);
+	void    		send_to_client(int fd, std::string log);
+	void 			send_to_channel(int index_client, std::string &channel, const std::string &message);
+
 	void    		quit(int index_client);
 	void    		pass(int index_client, std::vector <std::string> cmd_args);
 	void    		nick(int index_client, std::vector <std::string> cmd_args);
 	void    		user(int index_client, std::vector <std::string> cmd_args);
-	// void    		privmsg(int index_client, std::vector <std::string> cmd_args);
+	void    		privmsg(int index_client, std::vector <std::string> cmd_args);
 	void    		join(int index_client, std::vector <std::string> cmd_args);
 	void    		invite(int index_client, std::vector <std::string> cmd_args);
 	void    		kick(int index_client, std::vector <std::string> cmd_args);

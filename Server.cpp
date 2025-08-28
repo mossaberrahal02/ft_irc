@@ -37,11 +37,6 @@ Server::Server(int ac, char **av)
         std::cerr << "can't create socket" << std::endl;
         exit(EXIT_FAILURE);
     }
-    // if (fcntl(fd_server, F_SETFL, O_NONBLOCK) == -1)
-    // {
-    //     std::cerr << "can't set server non blocking" << std::endl;
-    //     exit(EXIT_FAILURE);
-    // }
 
     if (setsockopt(fd_server, SOL_SOCKET, SO_REUSEADDR, &en, sizeof(en)) == -1)
     {
@@ -79,20 +74,26 @@ Server::~Server()
 	close(fd_server);
 }
 
-void    Server::clear_disconnected()
+void Server::clear_disconnected()
 {
-    for (size_t i = 0; i < clients.size(); ) 
+    for (size_t i = 0; i < clients.size();) 
     {
         if (clients[i].disconnected) {
+            int fd = clients[i].fd_client;
             removeFromChannels(i, channels);
-            fds.erase(fds.begin() + (i + 1));
+            for (size_t j = 0; j < fds.size(); j++) {
+                if (fds[j].fd == fd) {
+                    fds.erase(fds.begin() + j);
+                    break;
+                }
+            }
             clients.erase(clients.begin() + i);
-        } else {
+        } 
+        else {
             ++i;
         }
     }
 }
-
 
 void        Server::loop()
 {
@@ -133,12 +134,6 @@ void        Server::new_connection()
         std::cerr << "can't accept new client" << std::endl;
         return;
     }
-    // if (fcntl( client.fd_client, F_SETFL, O_NONBLOCK) == -1)
-    // {
-    //     std::cerr << "can't set client non blocking" << std::endl;
-    //     close(client.fd_client);
-    //     return;
-    // }
     new_cli.fd = client.fd_client;
     new_cli.events = POLLIN;
     new_cli.revents = 0;
@@ -164,7 +159,6 @@ void        Server::process_client_data(int fd)
         return;
     }
     clients[cli_indx].buffer.append(buffer, buff_readed);
-    std::cout << "<" << clients[cli_indx].buffer <<">" << std::endl;
     while ((pos = clients[cli_indx].buffer.find_first_of("\r\n")) != std::string::npos)
     {
         process_command(cli_indx, clients[cli_indx].buffer.substr(0, pos));
@@ -201,8 +195,8 @@ void    Server::normal_commands(int index_client, std::vector <std::string> cmd_
 {
     if (cmd_args[0] == "QUIT")
         return quit(index_client);
-    // else if (cmd_args[0] == "PRVIMSG")
-    //     return privmsg(index_client, cmd_args);
+    else if (cmd_args[0] == "PRIVMSG")
+        return privmsg(index_client, cmd_args);
     else if (cmd_args[0] == "JOIN")
         return join(index_client, cmd_args);
     else if (cmd_args[0] == "INVITE")
@@ -246,16 +240,3 @@ int     Server::getClient(int fd)
     }
     return -1;
 }
-
-
-
-
-// USER <username> <hostname> <servername> <realname>
-
-// <username> → the user’s login/username (often arbitrary, not a real OS login).
-
-// <hostname> → the client’s host (usually ignored by the server, since it can resolve it itself).
-
-// <servername> → the server name (also usually ignored).
-
-// <realname> → a "gecos"/display field describing the user (can contain spaces if prefixed with :).
