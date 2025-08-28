@@ -1,93 +1,172 @@
 #include "Bot.hpp"
 #include "Server.hpp"
 #include <iostream>
+#include <string>
 
+Bot::Bot()
+{
+}
 
-void Server::Help()
+Bot::~Bot()
+{
+}
+
+void Server::Help(int index_client)
 {
     std::string Greeting = "";
-    Greeting.append("                                                                                \n");
-    Greeting.append("\t Usage: Bot [nickName] [option]\r\t\t\t\t\t\t\t\t\t\t \n");
-    Greeting.append("\t How Can I Help You: (You can use The following list of commands)\r\t\t\t\t\t\t\t\t\t\t \n");
-    Greeting.append("\t [0]: to List all Your stats\r\t\t\t\t\t\t\t\t\t\t \n");
-    Greeting.append("\t [1]: to List all Your Joined Channels\r\t\t\t\t\t\t\t\t\t\t \n");
-    Greeting.append("\t [2]: to see How many user online\r\t\t\t\t\t\t\t\t\t\t \n");
-    Greeting.append("\t [3]: to List all Channels in Server\r\t\t\t\t\t\t\t\t\t\t \n");
-    Greeting.append("\t [4]: to List stats of specific Channel\r\t\t\t\t\t\t\t\t\t\t \n");
-    Greeting.append("\t [5]: to List Infos about the Server\r\t\t\t\t\t\t\t\t\t\t \n");
-    
-    std::cout << Greeting;
+    Greeting.append("Usage: BOT <option> [argument]\r\n");
+    Greeting.append("[0] <nick>   : Show user info\r\n");
+    Greeting.append("[1]          : List online users\r\n");
+    Greeting.append("[2]          : List all channels\r\n");
+    Greeting.append("[3] <channel>: Show channel info\r\n");
+    Greeting.append("[4]          : Show server info\r\n");
+    send_to_client(clients[index_client].fd_client, Greeting);
+    server_log(index_client, Greeting);
 }
 
 void Server::bot(int index_client, std::vector<std::string> cmd_args)
 {
-    //BOT <nickName> <option>
-    if (cmd_args.size() == 1)
-        Help();
-	else if (cmd_args.size() == 3)
+    if (cmd_args.size() == 1) 
+        return Help(index_client);
+
+    std::string option = cmd_args[1];
+
+    if (option == "0" && cmd_args.size() == 3) 
 	{
-        int client = get_client_index_by_nick(cmd_args[1]);
-        if(client == -1)
-        {
-            send_to_client(index_client, "No such client\r\n");
-            send_to_client(index_client, "BOT <nickName> <option>\r\n");
-            server_log(index_client, "No such client\r\n");
-            return ;
+        int target = get_client_index_by_nick(cmd_args[2]);
+        if (target == -1)
+            return send_to_client(clients[index_client].fd_client, "No such user\r\n"), server_log(index_client, "No such user\r\n");
+        return getUserInfo(target);
+    }
+    else if (option == "1")
+        return onlineUsers(index_client);
+    else if (option == "2")
+        return listAllChannels(index_client);
+    else if (option == "3" && cmd_args.size() == 3)
+        return channelInfo(index_client, cmd_args[2]);
+    else if (option == "4")
+        return serverInfo(index_client);
+
+    send_to_client(clients[index_client].fd_client, "Invalid BOT usage\r\n");
+	server_log(index_client, "Invalid BOT usage\r\n");
+}
+
+void Server::getUserInfo(int index_client)
+{
+	for (unsigned int i = 0; i < this->clients.size(); i++)
+	{
+		if (this->clients[i].nickName == this->clients[index_client].nickName)
+		{
+			std::string userInfo;
+			userInfo.append("User Info:\r\n");
+			userInfo.append("Nickname: " + this->clients[i].nickName + "\r\n");
+			userInfo.append("Username: " + this->clients[i].userName + "\r\n");
+			send_to_client(clients[index_client].fd_client, userInfo);
+			server_log(index_client, userInfo);
+			return ;
+		}
+	}
+	send_to_client(clients[index_client].fd_client, "No such user\r\n");
+	server_log(index_client, "No such user\r\n");
+	return ;
+}
+
+void Server::onlineUsers(int index_client)
+{
+	std::string onlineUsersList = "Online Users:\r\n";
+	for (size_t i = 1; i < this->fds.size(); ++i)
+	{
+		if(this->fds[i].fd != -1 && get_client_by_fd(this->fds[i].fd) != NULL)
+		{
+			onlineUsersList += get_client_by_fd(this->fds[i].fd)->nickName + "\r\n";
+		}
+	}
+	send_to_client(clients[index_client].fd_client, onlineUsersList);
+	server_log(index_client, onlineUsersList);
+}
+
+void Server::serverInfo(int index_client) {
+    std::string server("Server Name: " + this->serverName + "\r\n");
+    server.append("Online Users:\r\n");
+    for (size_t i = 0; i < this->clients.size(); ++i)
+        server.append(" - " + this->clients[i].nickName + "\r\n");
+    send_to_client(clients[index_client].fd_client, server);
+    server_log(index_client, server);
+}
+
+
+void Server::channelInfo(int index_client, std::string ChannelName) {
+	std::cout << "Fetching info for channel: " << ChannelName << std::endl;
+    for (size_t i = 0; i < this->channels.size(); i++) {
+        if (this->channels[i].name == ChannelName) {
+			std::cout << "Channel found: " << this->channels[i].name << " argument ChannelName = " << ChannelName << std::endl;
+            bool isMember = false;
+			std::cout << "this->channels[i].clients size : " << this->channels[i].clients.size() << std::endl;
+            for (size_t j = 0; j < this->channels[i].clients.size(); j++) {
+				std::cout << "Comparing " << this->channels[i].clients[j].nickName << " with " << clients[index_client].nickName << std::endl;
+				if (this->channels[i].clients[j].nickName == clients[index_client].nickName) {
+					isMember = true;
+                    break;
+                }
+            }
+			for (size_t j = 0; j < this->channels[i].admins.size(); j++) {
+				std::cout << "Comparing " << this->channels[i].admins[j].nickName << " with " << clients[index_client].nickName << std::endl;
+				if (this->channels[i].admins[j].nickName == clients[index_client].nickName) {
+					isMember = true;
+                    break;
+                }
+            }
+            if (!isMember) {
+                send_to_client(clients[index_client].fd_client, "You are not a member of this channel\r\n");
+                server_log(index_client, "You are not a member of this channel\r\n");
+                return;
+            }
+
+            std::string Info;
+            Info.append("Channel Name: " + this->channels[i].name + "\r\n");
+
+            Info.append("Admins:\r\n");
+            for (size_t k = 0; k < this->channels[i].admins.size(); k++)
+                Info.append(" - " + this->channels[i].admins[k].nickName + "\r\n");
+
+            Info.append("Members:\r\n");
+            for (size_t m = 0; m < this->channels[i].clients.size(); m++)
+                Info.append(" - " + this->channels[i].clients[m].nickName + "\r\n");
+
+            if (this->channels[i].topic_name.empty())
+                Info.append("Topic: (no topic)\r\n");
+            else
+                Info.append("Topic: " + this->channels[i].topic_name + "\r\n");
+
+            send_to_client(clients[index_client].fd_client, Info);
+            server_log(index_client, Info);
+            return;
         }
-		if (cmd_args[2] == "0")
-			return (getUserInfo(client));
-		// else if (cmd_args[2] == "1")
-		// 	return ("Online Users: " + std::to_string(this->_online_c - 1) + "\n");
-		else if (cmd_args[2] == "2")
-			return (listAllChannels());
-		else if (cmd_args[2] == "4")
-		{
-			if (cmd_args.size() == 3)
-				return(_channelInfo(cmd_args[1], index_client));
-			else
-				return ("Usage of this Command: DEEZNUTS 4 [CHANNEL NAME]\n");
-		}
-		else if (cmd_args[2] == "5")
-			return (_serverInfo());
-	}
+    }
+    send_to_client(clients[index_client].fd_client, "No such channel\r\n");
+    server_log(index_client, "No such channel\r\n");
 }
 
-std::string Server::_serverInfo() const
-{
-	std::string server("Server Name: " + this->_name + "\n");
-	server.append("Online Users: " + std::to_string(this->_online_c - 1) + "\n");
-	server.append("Max Online Users: " + std::to_string(this->_max_online_c) + "\n");
-	server.append("Number of Channels in the Server: " + std::to_string(this->_allChannels.size()) + "\n");
-	return (server);
-}
 
-std::string Server::_channelInfo(std::string ChannelName, int i)
+void	Server::listAllChannels(int index_client)
 {
-	std::map<std::string, Channel *>::const_iterator it = this->_allChannels.find(ChannelName);
-	if (it != this->_allChannels.end())
+	std::string allChannels = "List of all Channels:\r\n";
+	
+	if (this->channels.empty())
 	{
-		if (this->clients[i]->isJoined(ChannelName))
-		{
-			std::string Info;
-			Info.append("Channel Name: " + it->second->getName() + "\n");
-			Info.append("Channel Creator: " + it->second->getCreator()->getFullName() + "\n");
-			Info.append("Online Users: " + std::to_string(it->second->getOnlineUsers()) + "\n");
-			Info.append("Channel Topic: " + it->second->getTopic() + "\n");
-			return (Info);
-		}
-		else
-			return ("You Need To Join th channel first\n");
+	    allChannels.append("		No channels available.\r\n");
+		send_to_client(clients[index_client].fd_client, allChannels);
+		server_log(index_client, allChannels);
+		return;
 	}
-	return ("There's No Channel Named " + ChannelName + "!\n");
-}
-
-// void	Server::listAllChannels() const
-// {
-// 	for (int i = )
-// 	{
-// 		"Channel Name: " << channel.second->getName() << "\n";
-// 		"Channel Creator: " << channel.second->getCreator()->getFullName() << "\n";
-// 		"Online Users: " << channel.second->getOnlineUsers() << "\n";
-// 		"Channel Topic: " << channel.second->getTopic() << "\n";
-// 	}
-// };
+	for (unsigned int i = 0; i < this->channels.size(); i++)
+	{
+		allChannels.append("Channel Name: " + this->channels[i].name + "\r\n");
+		if (this->channels[i].topic_name.empty())
+			allChannels.append("Topic: (no topic)\r\n");
+		else
+			allChannels.append("Topic: " + this->channels[i].topic_name + "\r\n");
+	}
+	send_to_client(clients[index_client].fd_client, allChannels);
+	server_log(index_client, allChannels);
+};
